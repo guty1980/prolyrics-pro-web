@@ -1,23 +1,31 @@
 ---
 import { seedHeroSlides, normalizeHeroSlide } from "../../../netlify/functions/_lib/seed-hero.mjs";
 
-const initialSlides = seedHeroSlides.map(normalizeHeroSlide).filter((slide) => slide.active);
-
 function safeUrl(value) {
   const url = String(value || "").trim();
   return /^(https?:\/\/|\/|#|mailto:)/i.test(url) ? url : "";
 }
 
+function deviceModeFor(slide) {
+  if (["both", "monitor", "phone"].includes(slide.deviceMode)) return slide.deviceMode;
+  return slide.showPhone === false ? "monitor" : "both";
+}
+
 function phoneImageFor(slide) {
   return safeUrl(slide.phoneImage || slide.image);
 }
+
+const initialSlides = seedHeroSlides
+  .map(normalizeHeroSlide)
+  .filter((slide) => slide.active)
+  .map((slide) => ({ ...slide, viewMode: deviceModeFor(slide) }));
 ---
 
 <section class="hero-reel" id="hero-reel" aria-label="Productos destacados de CREATIVOX">
   <div class="hero-track" id="hero-slides">
     {
       initialSlides.map((slide, index) => (
-        <article class:list={["hero-slide", index === 0 && "is-active"]} data-index={index}>
+        <article class:list={["hero-slide", index === 0 && "is-active", `is-${slide.viewMode}-mode`]} data-index={index}>
           <div class="hero-bg" data-bg={safeUrl(slide.backgroundImage)} aria-hidden="true"></div>
           <div class="hero-veil" aria-hidden="true"></div>
 
@@ -73,32 +81,34 @@ function phoneImageFor(slide) {
 
             <div class="hero-visual" aria-hidden="true">
               <div class="hero-devices">
-                <div class="hero-window">
-                  <div class="hero-window-bar">
-                    <span class="hero-window-dots">
-                      <i></i><i></i><i></i>
-                    </span>
-                    <span>{slide.previewLabel}</span>
+                {slide.viewMode !== "phone" && (
+                  <div class="hero-window">
+                    <div class="hero-window-bar">
+                      <span class="hero-window-dots">
+                        <i></i><i></i><i></i>
+                      </span>
+                      <span>{slide.previewLabel}</span>
+                    </div>
+                    <div class="hero-preview">
+                      {slide.image ? (
+                        <img
+                          class="hero-preview-image"
+                          src={safeUrl(slide.image)}
+                          alt={slide.imageAlt || slide.title}
+                          loading={index === 0 ? "eager" : "lazy"}
+                        />
+                      ) : (
+                        <div class="hero-preview-text">
+                          {slide.previewKicker && <p class="hero-preview-kicker">{slide.previewKicker}</p>}
+                          {slide.previewText && <p class="hero-preview-line">{slide.previewText}</p>}
+                          <div class="hero-preview-rule"></div>
+                        </div>
+                      )}
+                      {slide.previewBadge && <span class="hero-preview-badge">{slide.previewBadge}</span>}
+                    </div>
                   </div>
-                  <div class="hero-preview">
-                    {slide.image ? (
-                      <img
-                        class="hero-preview-image"
-                        src={safeUrl(slide.image)}
-                        alt={slide.imageAlt || slide.title}
-                        loading={index === 0 ? "eager" : "lazy"}
-                      />
-                    ) : (
-                      <div class="hero-preview-text">
-                        {slide.previewKicker && <p class="hero-preview-kicker">{slide.previewKicker}</p>}
-                        {slide.previewText && <p class="hero-preview-line">{slide.previewText}</p>}
-                        <div class="hero-preview-rule"></div>
-                      </div>
-                    )}
-                    {slide.previewBadge && <span class="hero-preview-badge">{slide.previewBadge}</span>}
-                  </div>
-                </div>
-                {slide.showPhone !== false && (
+                )}
+                {slide.viewMode !== "monitor" && (
                   <div class="hero-phone">
                     <div class="hero-phone-bar">{slide.phoneLabel || "CREATIVOX · APK"}</div>
                     <div class="hero-phone-screen">
@@ -552,6 +562,51 @@ function phoneImageFor(slide) {
     transform: translateX(-50%);
   }
 
+  .hero-slide.is-monitor-mode .hero-devices .hero-window {
+    flex: 1 1 100%;
+  }
+
+  .hero-slide.is-phone-mode .hero-devices {
+    justify-content: center;
+  }
+
+  .hero-slide.is-phone-mode .hero-phone {
+    flex: 0 1 16rem;
+    width: min(16rem, 80%);
+    padding: 0.8rem;
+    border-radius: 2.4rem;
+    transform: none;
+  }
+
+  .hero-slide.is-phone-mode .hero-phone::before {
+    top: 0.95rem;
+    width: 3.5rem;
+    height: 0.34rem;
+  }
+
+  .hero-slide.is-phone-mode .hero-phone-bar {
+    margin: 1rem 0 0.7rem;
+    font-size: 0.85rem;
+  }
+
+  .hero-slide.is-phone-mode .hero-phone-screen {
+    border-radius: 1.9rem;
+  }
+
+  .hero-slide.is-phone-mode .hero-phone-fallback span {
+    font-size: 2rem;
+  }
+
+  .hero-slide.is-phone-mode .hero-phone-fallback small {
+    font-size: 0.85rem;
+  }
+
+  .hero-slide.is-phone-mode .hero-phone-badge {
+    bottom: 0.9rem;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.7rem;
+  }
+
   .hero-floating {
     position: absolute;
     left: -1.4rem;
@@ -724,6 +779,17 @@ function phoneImageFor(slide) {
       padding: 0.3rem;
     }
 
+    .hero-slide.is-phone-mode .hero-phone {
+      flex-basis: 12rem;
+      width: min(12rem, 82%);
+      padding: 0.6rem;
+    }
+
+    .hero-slide.is-phone-mode .hero-phone-bar {
+      margin-top: 0.7rem;
+      font-size: 0.68rem;
+    }
+
     .hero-phone-bar {
       margin-top: 0.45rem;
       font-size: 0.48rem;
@@ -776,6 +842,11 @@ function phoneImageFor(slide) {
     return /^(https?:\/\/|\/|#|mailto:)/i.test(url) ? url : "";
   }
 
+  function deviceModeFor(slide) {
+    if (["both", "monitor", "phone"].includes(slide.deviceMode)) return slide.deviceMode;
+    return slide.showPhone === false ? "monitor" : "both";
+  }
+
   function statsMarkup(slide) {
     const stats = [
       [slide.stat1Value, slide.stat1Label],
@@ -794,8 +865,31 @@ function phoneImageFor(slide) {
   function slideMarkup(slide, position) {
     const background = safeUrl(slide.backgroundImage);
     const image = safeUrl(slide.image);
+    const mode = deviceModeFor(slide);
     const phoneImage = safeUrl(slide.phoneImage || slide.image);
-    const phoneMarkup = slide.showPhone === false ? "" : `
+    const preview = image
+      ? `<img class="hero-preview-image" src="${esc(image)}" alt="${esc(slide.imageAlt || slide.title)}" loading="${position === 0 ? "eager" : "lazy"}" />`
+      : `<div class="hero-preview-text">${
+          slide.previewKicker ? `<p class="hero-preview-kicker">${esc(slide.previewKicker)}</p>` : ""
+        }${
+          slide.previewText ? `<p class="hero-preview-line">${esc(slide.previewText)}</p>` : ""
+        }<div class="hero-preview-rule"></div></div>`;
+    const monitorMarkup = mode === "phone" ? "" : `
+      <div class="hero-window">
+        <div class="hero-window-bar">
+          <span class="hero-window-dots"><i></i><i></i><i></i></span>
+          <span>${esc(slide.previewLabel)}</span>
+        </div>
+        <div class="hero-preview">
+          ${preview}
+          ${
+            slide.previewBadge
+              ? `<span class="hero-preview-badge">${esc(slide.previewBadge)}</span>`
+              : ""
+          }
+        </div>
+      </div>`;
+    const phoneMarkup = mode === "monitor" ? "" : `
       <div class="hero-phone">
         <div class="hero-phone-bar">${esc(slide.phoneLabel || "CREATIVOX · APK")}</div>
         <div class="hero-phone-screen">
@@ -807,16 +901,9 @@ function phoneImageFor(slide) {
           ${slide.phoneBadge ? `<span class="hero-phone-badge">${esc(slide.phoneBadge)}</span>` : ""}
         </div>
       </div>`;
-    const preview = image
-      ? `<img class="hero-preview-image" src="${esc(image)}" alt="${esc(slide.imageAlt || slide.title)}" loading="${position === 0 ? "eager" : "lazy"}" />`
-      : `<div class="hero-preview-text">${
-          slide.previewKicker ? `<p class="hero-preview-kicker">${esc(slide.previewKicker)}</p>` : ""
-        }${
-          slide.previewText ? `<p class="hero-preview-line">${esc(slide.previewText)}</p>` : ""
-        }<div class="hero-preview-rule"></div></div>`;
 
     return `
-      <article class="hero-slide${position === 0 ? " is-active" : ""}" data-index="${position}">
+      <article class="hero-slide${position === 0 ? " is-active" : ""} is-${mode}-mode" data-index="${position}">
         <div class="hero-bg" data-bg="${esc(background)}" aria-hidden="true"></div>
         <div class="hero-veil" aria-hidden="true"></div>
         <div class="container hero-content">
@@ -847,20 +934,7 @@ function phoneImageFor(slide) {
           </div>
           <div class="hero-visual" aria-hidden="true">
             <div class="hero-devices">
-              <div class="hero-window">
-                <div class="hero-window-bar">
-                  <span class="hero-window-dots"><i></i><i></i><i></i></span>
-                  <span>${esc(slide.previewLabel)}</span>
-                </div>
-                <div class="hero-preview">
-                  ${preview}
-                  ${
-                    slide.previewBadge
-                      ? `<span class="hero-preview-badge">${esc(slide.previewBadge)}</span>`
-                      : ""
-                  }
-                </div>
-              </div>
+              ${monitorMarkup}
               ${phoneMarkup}
             </div>
             <div class="hero-floating">

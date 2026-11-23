@@ -15,6 +15,7 @@ export const seedHeroSlides = [
     backgroundImage: "",
     image: "",
     imageAlt: "",
+    deviceMode: "both",
     showPhone: true,
     phoneImage: "",
     phoneLabel: "CREATIVOX · APK",
@@ -46,6 +47,7 @@ export const seedHeroSlides = [
     backgroundImage: "",
     image: "",
     imageAlt: "PROLYRICS",
+    deviceMode: "both",
     showPhone: true,
     phoneImage: "",
     phoneLabel: "PROLYRICS · APK",
@@ -77,6 +79,7 @@ export const seedHeroSlides = [
     backgroundImage: "",
     image: "",
     imageAlt: "Recursos visuales",
+    deviceMode: "both",
     showPhone: true,
     phoneImage: "",
     phoneLabel: "CREATIVOX · APK",
@@ -95,6 +98,12 @@ export const seedHeroSlides = [
 ];
 
 export function normalizeHeroSlide(body = {}) {
+  const deviceMode = ["both", "monitor", "phone"].includes(body.deviceMode)
+    ? body.deviceMode
+    : body.showPhone === false
+      ? "monitor"
+      : "both";
+
   return {
     id: String(body.id || ""),
     active: body.active !== false,
@@ -110,7 +119,8 @@ export function normalizeHeroSlide(body = {}) {
     backgroundImage: String(body.backgroundImage || ""),
     image: String(body.image || ""),
     imageAlt: String(body.imageAlt || ""),
-    showPhone: body.showPhone !== false,
+    deviceMode,
+    showPhone: deviceMode !== "monitor",
     phoneImage: String(body.phoneImage || ""),
     phoneLabel: body.phoneLabel === undefined ? "CREATIVOX · APK" : String(body.phoneLabel),
     phoneBadge: body.phoneBadge === undefined ? "APK · Android" : String(body.phoneBadge),

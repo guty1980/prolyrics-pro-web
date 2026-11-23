@@ -200,7 +200,7 @@ import "../assets/styles/global.css";
                 </div>
               </label>
               <label class="field">
-                <span>Imagen principal de la diapositiva</span>
+                <span>Imagen del monitor (formato 16:9)</span>
                 <div class="inline-actions">
                   <input id="hero-image" placeholder="/api/media?key=..." />
                   <button class="btn btn-ghost btn-small" type="button" data-pick-target="hero-image">Elegir de galería</button>
@@ -209,10 +209,17 @@ import "../assets/styles/global.css";
               <label class="field"><span>Texto alternativo de la imagen</span><input id="hero-image-alt" placeholder="Nombre de la aplicación" /></label>
 
               <hr />
-              <h3>Vista para celular (APK)</h3>
-              <label class="check"><input id="hero-show-phone" type="checkbox" checked /> Mostrar celular junto al monitor</label>
+              <h3>Dispositivos de la portada</h3>
               <label class="field">
-                <span>Imagen del celular (si la dejas vacía usa la imagen principal)</span>
+                <span>Qué quieres mostrar</span>
+                <select id="hero-device-mode">
+                  <option value="both">Monitor + celular</option>
+                  <option value="monitor">Solo monitor</option>
+                  <option value="phone">Solo celular</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Imagen del celular (formato 9:16; si la dejas vacía usa la del monitor)</span>
                 <div class="inline-actions">
                   <input id="hero-phone-image" placeholder="/api/media?key=..." />
                   <button class="btn btn-ghost btn-small" type="button" data-pick-target="hero-phone-image">Elegir de galería</button>

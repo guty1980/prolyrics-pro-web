@@ -285,7 +285,7 @@
     backgroundImage: "hero-background",
     image: "hero-image",
     imageAlt: "hero-image-alt",
-    showPhone: "hero-show-phone",
+    deviceMode: "hero-device-mode",
     phoneImage: "hero-phone-image",
     phoneLabel: "hero-phone-label",
     phoneBadge: "hero-phone-badge",
@@ -300,7 +300,12 @@
     stat3Value: "hero-stat3-value",
     stat3Label: "hero-stat3-label",
   };
-  const heroBooleanFields = new Set(["active", "showPhone"]);
+  const heroBooleanFields = new Set(["active"]);
+
+  function deviceModeFrom(slide) {
+    if (["both", "monitor", "phone"].includes(slide.deviceMode)) return slide.deviceMode;
+    return slide.showPhone === false ? "monitor" : "both";
+  }
 
   function readHeroForm() {
     const slide = {};
@@ -311,6 +316,7 @@
       else if (key === "order") slide[key] = Number(node.value || 0);
       else slide[key] = node.value.trim();
     });
+    slide.showPhone = slide.deviceMode !== "monitor";
     return slide;
   }
 
@@ -319,6 +325,7 @@
       const node = $(id);
       if (!node) return;
       if (heroBooleanFields.has(key)) node.checked = slide[key] !== false;
+      else if (key === "deviceMode") node.value = deviceModeFrom(slide);
       else node.value = slide[key] ?? "";
     });
   }
@@ -328,7 +335,7 @@
     if ($("hero-id")) $("hero-id").value = "";
     if ($("hero-order")) $("hero-order").value = String(heroSlides.length + 1);
     if ($("hero-active")) $("hero-active").checked = true;
-    if ($("hero-show-phone")) $("hero-show-phone").checked = true;
+    if ($("hero-device-mode")) $("hero-device-mode").value = "both";
   }
 
   function renderHeroList() {
