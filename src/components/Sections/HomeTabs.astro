@@ -1,0 +1,247 @@
+---
+---
+
+<div class="home-tabs" data-home-tabs>
+  <div class="border-b border-white/10 bg-ink-900">
+    <div class="container flex items-center gap-1">
+      <button
+        type="button"
+        data-home-tab="inicio"
+        data-no-edit
+        class="home-tab is-active"
+        role="tab"
+        aria-selected="true"
+        aria-controls="home-panel-inicio"
+      >
+        Inicio
+      </button>
+      <button
+        type="button"
+        data-home-tab="recursos"
+        data-no-edit
+        class="home-tab"
+        role="tab"
+        aria-selected="false"
+        aria-controls="home-panel-recursos"
+      >
+        Recursos
+      </button>
+    </div>
+  </div>
+
+  <div id="home-panel-inicio" data-home-panel="inicio" role="tabpanel">
+    <slot />
+  </div>
+
+  <div id="home-panel-recursos" data-home-panel="recursos" role="tabpanel" hidden>
+    <section class="min-h-[60vh] bg-slate-50 py-16">
+      <div class="container">
+        <div class="max-w-2xl">
+          <span class="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">Biblioteca</span>
+          <h2 class="mt-3">Imágenes y videos para descargar</h2>
+          <p class="mt-4 text-lg text-slate-500">
+            Aquí aparecen todos los fondos y videos que subas en <strong>Descargas</strong>. Los APK, apps y softwares no se muestran en esta sección.
+          </p>
+        </div>
+
+        <div class="mt-9 flex flex-wrap gap-2" role="group" aria-label="Filtrar descargas">
+          <button type="button" data-download-filter="all" data-no-edit class="download-filter is-active">Todos</button>
+          <button type="button" data-download-filter="images" data-no-edit class="download-filter">Imágenes</button>
+          <button type="button" data-download-filter="videos" data-no-edit class="download-filter">Videos</button>
+        </div>
+
+        <p class="mt-6 text-sm text-slate-500">
+          Mostrando <span class="font-bold text-slate-900" data-download-count>0</span> recursos
+        </p>
+
+        <div data-download-grid class="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
+
+        <div data-download-empty class="hidden rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center">
+          <p class="text-lg font-semibold text-slate-900">Todavía no hay recursos para descargar</p>
+          <p class="mt-2 text-sm text-slate-500">
+            Subí imágenes o videos desde el panel de administración, en la pestaña <strong>Descargas</strong>. Aparecerán aquí automáticamente.
+          </p>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<style>
+  .home-tab {
+    position: relative;
+    padding: 1rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #94a3b8;
+    transition: color 0.2s ease;
+  }
+
+  .home-tab:hover {
+    color: #fff;
+  }
+
+  .home-tab.is-active {
+    color: #fff;
+  }
+
+  .home-tab.is-active::after {
+    content: "";
+    position: absolute;
+    right: 1rem;
+    bottom: -1px;
+    left: 1rem;
+    height: 3px;
+    border-radius: 999px 999px 0 0;
+    background: linear-gradient(90deg, #a78bfa, #60a5fa);
+  }
+
+  .download-filter {
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    background: #fff;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #475569;
+    transition: all 0.2s ease;
+  }
+
+  .download-filter:hover {
+    border-color: #c4b5fd;
+    color: #6d28d9;
+  }
+
+  .download-filter.is-active {
+    border-color: #7c3aed;
+    background: #7c3aed;
+    color: #fff;
+  }
+</style>
+
+<script>
+  const esc = (value: unknown) =>
+    String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    })[char] as string);
+
+  type DownloadItem = {
+    key: string;
+    name: string;
+    type: string;
+    size: number;
+    url: string;
+    downloadUrl: string;
+  };
+
+  const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-home-tab]"));
+  const panels = Array.from(document.querySelectorAll<HTMLElement>("[data-home-panel]"));
+  const filters = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-download-filter]"));
+  const grid = document.querySelector<HTMLElement>("[data-download-grid]");
+  const empty = document.querySelector<HTMLElement>("[data-download-empty]");
+  const count = document.querySelector<HTMLElement>("[data-download-count]");
+
+  let downloads: DownloadItem[] = [];
+  let filter = "all";
+  let loaded = false;
+
+  function formatSize(bytes: number): string {
+    if (!bytes || bytes < 1024) return "0 KB";
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  function cardMarkup(item: DownloadItem): string {
+    const isVideo = String(item.type || "").startsWith("video/");
+    const preview = isVideo
+      ? `<video src="${esc(item.url)}" controls preload="metadata" class="h-full w-full object-cover"></video>`
+      : `<img src="${esc(item.url)}" alt="${esc(item.name)}" loading="lazy" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />`;
+
+    return `
+      <article class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-lg">
+        <div class="relative aspect-video overflow-hidden bg-ink-900">
+          ${preview}
+          <span class="badge absolute left-3 top-3 bg-black/60 text-white backdrop-blur">${isVideo ? "Video" : "Imagen"}</span>
+        </div>
+        <div class="p-5">
+          <h3 class="truncate text-base font-bold text-slate-900" title="${esc(item.name)}">${esc(item.name)}</h3>
+          <p class="mt-1 text-xs text-slate-500">${formatSize(Number(item.size) || 0)}</p>
+          <a
+            href="${esc(item.downloadUrl)}"
+            class="brand-gradient mt-4 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white"
+            download
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></svg>
+            Descargar
+          </a>
+        </div>
+      </article>`;
+  }
+
+  function render(): void {
+    if (!grid) return;
+    const visible = downloads.filter((item) => {
+      if (filter === "images") return String(item.type || "").startsWith("image/");
+      if (filter === "videos") return String(item.type || "").startsWith("video/");
+      return true;
+    });
+    grid.innerHTML = visible.map(cardMarkup).join("");
+    if (count) count.textContent = String(visible.length);
+    empty?.classList.toggle("hidden", visible.length !== 0);
+  }
+
+  async function loadDownloads(): Promise<void> {
+    if (loaded) return;
+    loaded = true;
+    try {
+      const response = await fetch("/api/downloads");
+      const data = await response.json();
+      downloads = Array.isArray(data.items) ? data.items : [];
+    } catch {
+      downloads = [];
+    }
+    render();
+  }
+
+  function activate(name: string, updateHash = true): void {
+    const resourcePanel = name === "recursos";
+    tabs.forEach((tab) => {
+      const active = tab.dataset.homeTab === name;
+      tab.classList.toggle("is-active", active);
+      tab.setAttribute("aria-selected", String(active));
+    });
+    panels.forEach((panel) => {
+      panel.hidden = panel.dataset.homePanel !== name;
+    });
+    if (resourcePanel) {
+      void loadDownloads();
+      window.dispatchEvent(new Event("resize"));
+    }
+    if (updateHash) {
+      const url = resourcePanel ? "#recursos" : window.location.pathname + window.location.search;
+      window.history.replaceState(null, "", url);
+    }
+  }
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => activate(tab.dataset.homeTab || "inicio"));
+  });
+
+  filters.forEach((button) => {
+    button.addEventListener("click", () => {
+      filter = button.dataset.downloadFilter || "all";
+      filters.forEach((other) => other.classList.toggle("is-active", other === button));
+      render();
+    });
+  });
+
+  window.addEventListener("hashchange", () => {
+    activate(window.location.hash === "#recursos" ? "recursos" : "inicio", false);
+  });
+
+  activate(window.location.hash === "#recursos" ? "recursos" : "inicio", false);
+</script>

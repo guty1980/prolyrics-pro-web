@@ -411,6 +411,23 @@ export default async function handler(request) {
     return json({ ok: true, slides: publicHeroSlides(await getHeroSlides()) });
   }
 
+  // --- Descargas públicas: imágenes y videos, nunca APK/software/apps -------
+  if (route === "downloads" && method === "GET") {
+    const allowedFolders = new Set(["Fondos de pantalla", "Videos para fondos"]);
+    const downloads = (await getMediaItems())
+      .filter((item) => allowedFolders.has(String(item.folder || "")))
+      .map((item) => ({
+        ...item,
+        downloadUrl: `/api/media?key=${encodeURIComponent(item.key)}&download=1`,
+      }));
+    return json({
+      ok: true,
+      items: downloads,
+      images: downloads.filter((item) => String(item.type || "").startsWith("image/")),
+      videos: downloads.filter((item) => String(item.type || "").startsWith("video/")),
+    });
+  }
+
   if (route === "admin/hero" && method === "GET") {
     if (!requireAdmin(request)) return unauthorized();
     return json({ ok: true, slides: await getHeroSlides() });

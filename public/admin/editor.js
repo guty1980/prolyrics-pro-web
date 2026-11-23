@@ -224,6 +224,9 @@
         const skip = new Set(["HTML", "BODY", "SCRIPT", "STYLE", "SVG", "PATH", "CIRCLE", "RECT", "LINE", "POLYGON"]);
         while (element && skip.has(element.tagName)) element = element.parentElement;
         if (!element || element === document.body) return;
+        // Las pestañas y filtros de la portada deben seguir funcionando
+        // dentro del panel de administración en modo edición.
+        if (element.closest && element.closest("[data-no-edit]")) return;
         event.preventDefault();
         event.stopPropagation();
         selectElement(element);
