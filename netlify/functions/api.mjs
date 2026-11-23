@@ -102,26 +102,57 @@ async function getBranding() {
   return { ...defaultBranding, ...(stored && typeof stored === "object" ? stored : {}) };
 }
 
+async function getMediaFolderMap() {
+  const stored = await readJSON(contentStore(), "media-folder-map", {});
+  return stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
+}
+
+async function saveMediaFolderMap(map) {
+  await writeJSON(contentStore(), "media-folder-map", map);
+}
+
 async function getMediaItems() {
   const store = mediaStore();
+  const folderMap = await getMediaFolderMap();
   const { blobs } = await store.list();
   const items = await Promise.all(
     blobs.map(async ({ key }) => {
       const entry = await store.getWithMetadata(key, { consistency: "strong" });
       const metadata = entry?.metadata || {};
+      const hasMappedFolder = Object.prototype.hasOwnProperty.call(folderMap, key);
       return {
         key,
         name: metadata.name || key.split("/").pop() || key,
         type: metadata.type || "application/octet-stream",
         size: Number(metadata.size || 0),
         alt: metadata.alt || "",
-        folder: metadata.folder || "",
+        folder: hasMappedFolder ? String(folderMap[key] || "") : metadata.folder || "",
         uploadedAt: metadata.uploadedAt || "",
         url: `/api/media?key=${encodeURIComponent(key)}`,
       };
     }),
   );
   return items.sort((a, b) => String(b.uploadedAt).localeCompare(String(a.uploadedAt)));
+}
+
+async function getMediaFolders(items) {
+  const stored = await readJSON(contentStore(), "media-folders", []);
+  const known = Array.isArray(stored) ? stored.map(String) : [];
+  const fromItems = (items || []).map((item) => String(item.folder || "")).filter(Boolean);
+  return Array.from(new Set([...known, ...fromItems].map((name) => name.trim()).filter(Boolean)))
+    .sort((a, b) => a.localeCompare(b, "es"));
+}
+
+async function saveMediaFolders(folders) {
+  await writeJSON(contentStore(), "media-folders", folders);
+}
+
+async function setMediaFolder(key, folder) {
+  // La carpeta vive en un índice ligero: mover un archivo no vuelve a subir el blob.
+  const map = await getMediaFolderMap();
+  map[key] = String(folder || "");
+  await saveMediaFolderMap(map);
+  return true;
 }
 
 function contentTypeFor(name, fallback) {
@@ -622,7 +653,58 @@ export default async function handler(request) {
   // --- Medios --------------------------------------------------------------
   if (route === "admin/media" && method === "GET") {
     if (!requireAdmin(request)) return unauthorized();
-    return json({ ok: true, items: await getMediaItems(), maxFileBytes: MAX_FILE_BYTES });
+    const items = await getMediaItems();
+    return json({
+      ok: true,
+      items,
+      folders: await getMediaFolders(items),
+      maxFileBytes: MAX_FILE_BYTES,
+    });
+  }
+
+  if (route === "admin/media/folders" && method === "POST") {
+    if (!requireAdmin(request)) return unauthorized();
+    const body = await readJson(request);
+    const name = String(body.name || "").trim().slice(0, 60);
+    if (!name) return error("Escribe el nombre de la sección.", 400);
+    const folders = await getMediaFolders(await getMediaItems());
+    if (!folders.includes(name)) {
+      folders.push(name);
+      folders.sort((a, b) => a.localeCompare(b, "es"));
+      await saveMediaFolders(folders);
+    }
+    return json({ ok: true, folders });
+  }
+
+  if (route === "admin/media/folders" && method === "DELETE") {
+    if (!requireAdmin(request)) return unauthorized();
+    const body = await readJson(request);
+    const name = String(body.name || "").trim();
+    const items = await getMediaItems();
+    const folders = (await getMediaFolders(items)).filter((item) => item !== name);
+    await Promise.all(
+      items
+        .filter((item) => item.folder === name)
+        .map((item) => setMediaFolder(item.key, "")),
+    );
+    await saveMediaFolders(folders);
+    return json({ ok: true, folders });
+  }
+
+  if (route === "admin/media/move" && method === "POST") {
+    if (!requireAdmin(request)) return unauthorized();
+    const body = await readJson(request);
+    const key = String(body.key || "");
+    const folder = String(body.folder || "").trim().slice(0, 60);
+    if (!key) return error("Falta la clave del archivo.", 400);
+    if (!(await setMediaFolder(key, folder))) return error("Archivo no encontrado.", 404);
+    if (folder && !(await getMediaFolders(await getMediaItems())).includes(folder)) {
+      const folders = await getMediaFolders(await getMediaItems());
+      folders.push(folder);
+      folders.sort((a, b) => a.localeCompare(b, "es"));
+      await saveMediaFolders(folders);
+    }
+    return json({ ok: true, key, folder });
   }
 
   if (route === "admin/media/status" && method === "GET") {
@@ -688,6 +770,7 @@ export default async function handler(request) {
     const id = crypto.randomUUID();
     const key = `${id}/${name}`;
     const uploadedAt = new Date().toISOString();
+    const folder = String(body.folder || "").trim().slice(0, 60);
 
     await mediaStore().set(key, new Blob([fileBuffer], { type }), {
       metadata: {
@@ -695,10 +778,23 @@ export default async function handler(request) {
         type,
         size: fileBuffer.byteLength,
         alt: String(body.alt || ""),
-        folder: String(body.folder || ""),
+        folder,
         uploadedAt,
       },
     });
+
+    const folderMap = await getMediaFolderMap();
+    folderMap[key] = folder;
+    await saveMediaFolderMap(folderMap);
+
+    if (folder) {
+      const folders = await getMediaFolders(await getMediaItems());
+      if (!folders.includes(folder)) {
+        folders.push(folder);
+        folders.sort((a, b) => a.localeCompare(b, "es"));
+        await saveMediaFolders(folders);
+      }
+    }
 
     await Promise.all(blobs.map(({ key: chunkKey }) => chunkStore().delete(chunkKey)));
 
@@ -710,7 +806,7 @@ export default async function handler(request) {
         type,
         size: fileBuffer.byteLength,
         alt: String(body.alt || ""),
-        folder: String(body.folder || ""),
+        folder,
         uploadedAt,
         url: `/api/media?key=${encodeURIComponent(key)}`,
       },
@@ -723,6 +819,11 @@ export default async function handler(request) {
     const key = String(body.key || "");
     if (!key) return error("Falta la clave del archivo.", 400);
     await mediaStore().delete(key);
+    const folderMap = await getMediaFolderMap();
+    if (Object.prototype.hasOwnProperty.call(folderMap, key)) {
+      delete folderMap[key];
+      await saveMediaFolderMap(folderMap);
+    }
     return json({ ok: true });
   }
 

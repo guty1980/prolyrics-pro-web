@@ -186,17 +186,17 @@ import "../assets/styles/global.css";
               </div>
               <label class="field"><span>Descripción</span><textarea id="product-description" rows="3"></textarea></label>
               <label class="field">
-                <span>Imagen principal (URL)</span>
+                <span>Portada / imagen principal (URL)</span>
                 <div class="inline-actions">
                   <input id="product-image" placeholder="/api/media?key=..." />
-                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="product-image">Elegir</button>
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="product-image">Elegir de galería</button>
                 </div>
               </label>
               <label class="field">
-                <span>Logo del producto (URL)</span>
+                <span>Miniatura / logo del producto (URL)</span>
                 <div class="inline-actions">
                   <input id="product-logo" placeholder="/api/media?key=..." />
-                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="product-logo">Elegir</button>
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="product-logo">Elegir de galería</button>
                 </div>
               </label>
               <label class="field"><span>Video / tráiler (URL)</span><input id="product-trailer" placeholder="/api/media?key=..." /></label>
@@ -340,27 +340,43 @@ import "../assets/styles/global.css";
           <div class="panel-heading">
             <div>
               <h2>Biblioteca de medios</h2>
-              <p>Sube imágenes, videos, PDFs o cualquier archivo. Los archivos grandes se envían por fragmentos y se pueden retomar si se interrumpe la subida.</p>
+              <p>Sube fotos, imágenes, videos o archivos. Arrástralos a una sección para organizarlos, o usa el botón para subir. Desde cada tarjeta podés poner la imagen como portada o miniatura de un producto.</p>
             </div>
+            <button id="upload-button" class="btn btn-primary" type="button">↑ Subir archivos</button>
           </div>
 
           <div class="form-row media-fields">
-            <label class="field"><span>Carpeta (opcional)</span><input id="media-folder" placeholder="productos, logos, videos…" /></label>
+            <label class="field">
+              <span>Sección donde se guardarán los archivos</span>
+              <select id="media-folder-select"><option value="">Sin sección</option></select>
+            </label>
+            <label class="field">
+              <span>Producto al que aplicar portada / miniatura</span>
+              <select id="media-product-select"></select>
+            </label>
             <label class="field"><span>Texto alternativo (opcional)</span><input id="media-alt" placeholder="Descripción de la imagen" /></label>
+            <div class="field">
+              <span>Nueva sección</span>
+              <div class="inline-actions">
+                <input id="new-folder-name" placeholder="Ej: Portadas, Videos, Miniaturas" />
+                <button id="add-folder" class="btn btn-ghost btn-small" type="button">Crear sección</button>
+              </div>
+            </div>
           </div>
 
           <div id="dropzone" class="dropzone">
             <input id="media-input" type="file" multiple hidden />
-            <strong>Arrastra archivos aquí o haz clic para seleccionar</strong>
-            <span>Imágenes, videos, documentos, ZIP… hasta 4.5 GB por archivo</span>
+            <strong>Arrastra archivos aquí o haz clic en “Subir archivos”</strong>
+            <span>También podés soltarlos directamente en cualquier sección de la galería. Hasta 4.5 GB por archivo.</span>
           </div>
           <div id="upload-progress" class="upload-progress"></div>
 
           <div class="panel-heading compact">
-            <h3>Archivos en la nube</h3>
+            <h3>Galería por secciones</h3>
             <button id="refresh-media" class="btn btn-ghost" type="button">Actualizar</button>
           </div>
-          <div id="media-grid" class="media-grid"><p class="muted">Cargando…</p></div>
+          <div id="folder-filters" class="folder-filters"></div>
+          <div id="media-sections" class="media-sections"><p class="muted">Cargando…</p></div>
         </section>
 
         <!-- AJUSTES -->

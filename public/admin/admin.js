@@ -7,6 +7,11 @@
   let products = [];
   let users = [];
   let mediaItems = [];
+  let mediaFolders = [];
+  // Netlify Blobs lista con consistencia eventual; mantenemos los cambios recientes
+  // en el cliente para que la galería no “retroceda” al recargar demasiado pronto.
+  let pendingMedia = new Map();
+  let activeMediaFolder = "__all__";
   let mediaPickTarget = null;
   const MAX_FILE_BYTES = Math.floor(4.5 * 1024 * 1024 * 1024);
 
@@ -278,6 +283,7 @@
     try {
       const data = await api("/api/products?all=1");
       products = data.products || [];
+      renderMediaProductSelect();
       if (!products.length) {
         $("products-list").innerHTML = '<p class="muted">No hay productos todavía.</p>';
         return;
@@ -740,7 +746,7 @@
     });
   }
 
-  async function uploadFile(file) {
+  async function uploadFile(file, folderOverride) {
     if (file.size > MAX_FILE_BYTES) {
       toast(`${file.name}: el archivo supera el límite de 4.5 GB.`, true);
       return false;
@@ -798,7 +804,12 @@
           uploadId,
           name: file.name,
           type: file.type || "",
-          folder: $("media-folder") ? $("media-folder").value.trim() : "",
+          folder:
+            folderOverride !== undefined
+              ? folderOverride
+              : $("media-folder-select")
+                ? $("media-folder-select").value.trim()
+                : "",
           alt: $("media-alt") ? $("media-alt").value.trim() : "",
         }),
       });
@@ -806,7 +817,13 @@
       progress.update(100);
       progress.done();
       try { window.localStorage.removeItem(storageKey); } catch {}
-      mediaItems.unshift(result.item);
+      const uploaded = result.item;
+      mediaItems.unshift(uploaded);
+      if (uploaded.folder && !mediaFolders.includes(uploaded.folder)) {
+        mediaFolders.push(uploaded.folder);
+        mediaFolders.sort((a, b) => a.localeCompare(b, "es"));
+      }
+      markPendingMedia(uploaded.key, uploaded);
       return true;
     } catch (error) {
       progress.done();
@@ -815,12 +832,15 @@
     }
   }
 
-  async function uploadFiles(files) {
+  async function uploadFiles(files, folderOverride) {
     const list = Array.from(files || []);
     if (!list.length) return;
-    for (const file of list) await uploadFile(file);
-    toast(`${list.length} archivo(s) procesado(s).`);
-    loadMedia();
+    for (const file of list) {
+      const ok = await uploadFile(file, folderOverride);
+      if (!ok) return;
+    }
+    toast(`${list.length} archivo(s) subido(s).`);
+    refreshMediaSoon();
   }
 
   function mediaPreview(item) {
@@ -833,45 +853,337 @@
     return `<div class="file-icon">${esc((item.name || "?").split(".").pop() || "FILE").toUpperCase()}</div>`;
   }
 
+  function renderMediaFolderSelect(keepValue) {
+    const select = $("media-folder-select");
+    if (!select) return;
+    const current = keepValue || select.value || "";
+    select.innerHTML =
+      '<option value="">Sin sección</option>' +
+      mediaFolders
+        .map((folder) => `<option value="${esc(folder)}">${esc(folder)}</option>`)
+        .join("");
+    select.value = current;
+  }
+
+  function renderMediaProductSelect() {
+    const select = $("media-product-select");
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = products.length
+      ? products
+          .map((item) => `<option value="${esc(item.slug)}">${esc(item.title)}</option>`)
+          .join("")
+      : '<option value="">No hay productos</option>';
+    if (current && products.some((item) => item.slug === current)) select.value = current;
+  }
+
+  function mediaCardMarkup(item) {
+    const folder = String(item.folder || "");
+    const folderOptions = ['<option value="">Sin sección</option>']
+      .concat(
+        mediaFolders
+          .filter((name) => name !== folder)
+          .map((name) => `<option value="${esc(name)}">${esc(name)}</option>`),
+      )
+      .join("");
+    return `
+      <div class="media-card" draggable="true" data-media-key="${esc(item.key)}">
+        <div class="media-preview">${mediaPreview(item)}</div>
+        <div class="media-body">
+          <div class="media-name" title="${esc(item.name)}">${esc(item.name)}</div>
+          <div class="media-meta">${formatSize(item.size)} · ${esc((item.type || "archivo").split("/").pop())}</div>
+          <div class="media-actions">
+            <button class="btn btn-ghost btn-small" data-copy-media="${esc(item.key)}" type="button">Copiar URL</button>
+            <button class="btn btn-ghost btn-small" data-use-media="${esc(item.key)}" data-use-kind="${(item.type || "").startsWith("image/") ? "image" : "file"}" type="button">Usar en formulario</button>
+            <button class="btn btn-ghost btn-small" data-use-cover="${esc(item.key)}" type="button">Portada</button>
+            <button class="btn btn-ghost btn-small" data-use-thumb="${esc(item.key)}" type="button">Miniatura</button>
+            <a class="btn btn-ghost btn-small" href="${esc(item.url)}" target="_blank" rel="noopener">Descargar</a>
+            <select class="media-move" data-move-media="${esc(item.key)}" title="Mover a otra sección">${folderOptions}</select>
+            <button class="btn btn-danger btn-small" data-delete-media="${esc(item.key)}" type="button">✕</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function bindMediaCards() {
+    const root = $("media-sections");
+    if (!root) return;
+    root.querySelectorAll("[data-copy-media]").forEach((button) => {
+      button.addEventListener("click", () => copyMediaUrl(button.dataset.copyMedia));
+    });
+    root.querySelectorAll("[data-use-media]").forEach((button) => {
+      button.addEventListener("click", () => useMedia(button.dataset.useMedia, button.dataset.useKind));
+    });
+    root.querySelectorAll("[data-use-cover]").forEach((button) => {
+      button.addEventListener("click", () => setMediaRole(button.dataset.useCover, "image"));
+    });
+    root.querySelectorAll("[data-use-thumb]").forEach((button) => {
+      button.addEventListener("click", () => setMediaRole(button.dataset.useThumb, "logo"));
+    });
+    root.querySelectorAll("[data-move-media]").forEach((select) => {
+      select.addEventListener("change", () => moveMedia(select.dataset.moveMedia, select.value));
+    });
+    root.querySelectorAll("[data-delete-media]").forEach((button) => {
+      button.addEventListener("click", () => deleteMedia(button.dataset.deleteMedia));
+    });
+    root.querySelectorAll(".media-card").forEach((card) => {
+      card.addEventListener("dragstart", (event) => {
+        event.dataTransfer.setData("text/plain", card.dataset.mediaKey || "");
+        event.dataTransfer.effectAllowed = "move";
+      });
+    });
+  }
+
+  function renderMediaGallery() {
+    const filters = $("folder-filters");
+    const root = $("media-sections");
+    if (!filters || !root) return;
+
+    const groups = new Map();
+    const folderNames = new Set(mediaFolders.filter(Boolean).map(String));
+    mediaItems.forEach((item) => {
+      const folder = String(item.folder || "");
+      if (folder) folderNames.add(folder);
+      else folderNames.add("");
+      if (!groups.has(folder)) groups.set(folder, []);
+      groups.get(folder).push(item);
+    });
+
+    const visibleFolders = Array.from(folderNames).sort((a, b) => {
+      if (!a) return 1;
+      if (!b) return -1;
+      return a.localeCompare(b, "es");
+    });
+    if (activeMediaFolder !== "__all__" && activeMediaFolder !== "__none__" && !visibleFolders.includes(activeMediaFolder)) {
+      activeMediaFolder = "__all__";
+    }
+    if (activeMediaFolder === "__none__" && !visibleFolders.includes("")) {
+      activeMediaFolder = "__all__";
+    }
+
+    const countFor = (folder) => (groups.get(folder) || []).length;
+    const chips = [{ key: "__all__", label: "Todos", count: mediaItems.length }];
+    visibleFolders.forEach((folder) => {
+      chips.push({
+        key: folder || "__none__",
+        label: folder || "Sin sección",
+        count: countFor(folder),
+      });
+    });
+
+    filters.innerHTML = chips
+      .map(
+        (chip) => `
+          <button class="folder-chip ${activeMediaFolder === chip.key ? "is-active" : ""}" data-folder-filter="${esc(chip.key)}" type="button">
+            ${esc(chip.label)} <span>${chip.count}</span>
+          </button>`,
+      )
+      .join("");
+
+    filters.querySelectorAll("[data-folder-filter]").forEach((button) => {
+      button.addEventListener("click", () => {
+        activeMediaFolder = button.dataset.folderFilter;
+        renderMediaGallery();
+      });
+    });
+
+    const shown =
+      activeMediaFolder === "__all__"
+        ? visibleFolders
+        : visibleFolders.filter((folder) =>
+            activeMediaFolder === "__none__" ? folder === "" : folder === activeMediaFolder,
+          );
+
+    if (visibleFolders.length === 0) {
+      root.innerHTML = '<p class="muted">Todavía no has subido archivos. Usá el botón “Subir archivos” o arrastralos aquí.</p>';
+      return;
+    }
+
+    root.innerHTML = shown
+      .map((folder) => {
+        const label = folder || "Sin sección";
+        const cards = (groups.get(folder) || []).map(mediaCardMarkup).join("");
+        return `
+          <section class="media-section" data-section-folder="${esc(folder)}">
+            <header class="media-section-head">
+              <h4>${esc(label)} <span>${countFor(folder)}</span></h4>
+              <div class="inline-actions">
+                <button class="btn btn-ghost btn-small" data-upload-here="${esc(folder)}" type="button">Subir aquí</button>
+                ${folder ? `<button class="btn btn-ghost btn-small" data-remove-folder="${esc(folder)}" type="button">Quitar sección</button>` : ""}
+              </div>
+            </header>
+            <p class="media-section-hint">Arrastrá archivos o tarjetas aquí para guardarlos en “${esc(label)}”.</p>
+            <div class="media-grid">${cards || '<p class="muted media-empty">Sin archivos en esta sección. Arrastrá archivos aquí.</p>'}</div>
+          </section>`;
+      })
+      .join("");
+
+    root.querySelectorAll("[data-section-folder]").forEach((section) => {
+      const folder = section.dataset.sectionFolder;
+      const setOver = (over) => section.classList.toggle("is-drop-target", over);
+      section.addEventListener("dragenter", (event) => {
+        event.preventDefault();
+        setOver(true);
+      });
+      section.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+        setOver(true);
+      });
+      section.addEventListener("dragleave", (event) => {
+        if (!section.contains(event.relatedTarget)) setOver(false);
+      });
+      section.addEventListener("drop", (event) => {
+        event.preventDefault();
+        setOver(false);
+        const mediaKey = event.dataTransfer.getData("text/plain");
+        if (mediaKey && mediaByKey(mediaKey)) {
+          moveMedia(mediaKey, folder);
+        } else if (event.dataTransfer.files && event.dataTransfer.files.length) {
+          uploadFiles(event.dataTransfer.files, folder);
+        }
+      });
+    });
+
+    root.querySelectorAll("[data-upload-here]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const folder = button.dataset.uploadHere;
+        renderMediaFolderSelect(folder);
+        $("media-input").click();
+      });
+    });
+    root.querySelectorAll("[data-remove-folder]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const name = button.dataset.removeFolder;
+        if (!window.confirm(`¿Quitar la sección “${name}”? Los archivos quedarán en “Sin sección”.`)) return;
+        removeMediaFolder(name);
+      });
+    });
+
+    bindMediaCards();
+  }
+
   async function loadMedia() {
     try {
       const data = await api("/api/admin/media");
-      mediaItems = data.items || [];
-      if (mediaItems.length === 0) {
-        $("media-grid").innerHTML = '<p class="muted">Todavía no has subido archivos.</p>';
-        return;
-      }
-      $("media-grid").innerHTML = mediaItems
-        .map(
-          (item) => `
-            <div class="media-card">
-              <div class="media-preview">${mediaPreview(item)}</div>
-              <div class="media-body">
-                <div class="media-name" title="${esc(item.name)}">${esc(item.name)}</div>
-                <div class="media-meta">${formatSize(item.size)} · ${esc((item.type || "archivo").split("/").pop())}</div>
-                <div class="media-actions">
-                  <button class="btn btn-ghost btn-small" data-copy-media="${esc(item.key)}" type="button">Copiar URL</button>
-                  <button class="btn btn-ghost btn-small" data-use-image="${esc(item.key)}" type="button">Usar imagen</button>
-                  <button class="btn btn-ghost btn-small" data-use-file="${esc(item.key)}" type="button">Usar archivo</button>
-                  <button class="btn btn-danger btn-small" data-delete-media="${esc(item.key)}" type="button">✕</button>
-                </div>
-              </div>
-            </div>`,
-        )
-        .join("");
+      const items = Array.isArray(data.items) ? [...data.items] : [];
+      const now = Date.now();
 
-      $("media-grid").querySelectorAll("[data-copy-media]").forEach((button) => {
-        button.addEventListener("click", () => copyMediaUrl(button.dataset.copyMedia));
+      for (const [key, pending] of pendingMedia) {
+        if (pending.expires <= now) {
+          pendingMedia.delete(key);
+          continue;
+        }
+        const index = items.findIndex((item) => item.key === key);
+        if (pending.item === null) {
+          if (index >= 0) items.splice(index, 1);
+        } else if (index >= 0) {
+          items[index] = { ...items[index], ...pending.item };
+        } else {
+          items.unshift(pending.item);
+        }
+      }
+
+      const folders = new Set(Array.isArray(data.folders) ? data.folders : []);
+      pendingMedia.forEach(({ item }) => {
+        if (item && item.folder) folders.add(item.folder);
       });
-      $("media-grid").querySelectorAll("[data-use-image]").forEach((button) => {
-        button.addEventListener("click", () => useMedia(button.dataset.useImage, "image"));
+
+      mediaItems = items;
+      mediaFolders = Array.from(folders).sort((a, b) => a.localeCompare(b, "es"));
+      renderMediaFolderSelect();
+      renderMediaGallery();
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  async function createMediaFolder() {
+    const input = $("new-folder-name");
+    const name = input ? input.value.trim() : "";
+    if (!name) {
+      toast("Escribe un nombre para la sección.", true);
+      return;
+    }
+    try {
+      const data = await api("/api/admin/media/folders", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name }),
       });
-      $("media-grid").querySelectorAll("[data-use-file]").forEach((button) => {
-        button.addEventListener("click", () => useMedia(button.dataset.useFile, "file"));
+      mediaFolders = data.folders || [];
+      renderMediaFolderSelect(name);
+      if (input) input.value = "";
+      renderMediaGallery();
+      toast(`Sección “${name}” creada. Ahora podés soltar archivos en ella.`);
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  async function moveMedia(key, folder) {
+    try {
+      await api("/api/admin/media/move", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ key, folder }),
       });
-      $("media-grid").querySelectorAll("[data-delete-media]").forEach((button) => {
-        button.addEventListener("click", () => deleteMedia(button.dataset.deleteMedia));
+      const item = mediaByKey(key);
+      if (item) {
+        item.folder = folder;
+        markPendingMedia(key, { ...item, folder });
+      }
+      mediaFolders = Array.from(new Set([...mediaFolders, folder].filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b, "es"),
+      );
+      refreshMediaSoon();
+      toast(folder ? `Archivo movido a “${folder}”.` : "Archivo movido a Sin sección.");
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  async function removeMediaFolder(name) {
+    try {
+      const data = await api("/api/admin/media/folders", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name }),
       });
+      mediaFolders = data.folders || [];
+      mediaItems.forEach((item) => {
+        if (item.folder === name) item.folder = "";
+      });
+      if (activeMediaFolder === name) activeMediaFolder = "__all__";
+      renderMediaFolderSelect();
+      renderMediaGallery();
+      toast("Sección quitada. Los archivos siguen en Sin sección.");
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  async function setMediaRole(key, field) {
+    const slug = $("media-product-select") ? $("media-product-select").value : "";
+    const product = products.find((item) => item.slug === slug);
+    const item = mediaByKey(key);
+    if (!product || !item) {
+      toast("Elegí un producto y un archivo.", true);
+      return;
+    }
+    const url = new URL(item.url, window.location.origin).href;
+    try {
+      await api("/api/products", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...product, [field]: url }),
+      });
+      product[field] = url;
+      toast(
+        field === "image"
+          ? `Portada de ${product.title} actualizada.`
+          : `Miniatura de ${product.title} actualizada.`,
+      );
     } catch (error) {
       toast(error.message, true);
     }
@@ -879,6 +1191,16 @@
 
   function mediaByKey(key) {
     return mediaItems.find((item) => item.key === key);
+  }
+
+  function markPendingMedia(key, item) {
+    pendingMedia.set(key, { item, expires: Date.now() + 30000 });
+  }
+
+  function refreshMediaSoon() {
+    renderMediaFolderSelect();
+    renderMediaGallery();
+    window.setTimeout(loadMedia, 3000);
   }
 
   async function copyMediaUrl(key) {
@@ -928,8 +1250,10 @@
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ key }),
       });
+      markPendingMedia(key, null);
+      mediaItems = mediaItems.filter((item) => item.key !== key);
+      refreshMediaSoon();
       toast("Archivo eliminado.");
-      loadMedia();
     } catch (error) {
       toast(error.message, true);
     }
@@ -1041,6 +1365,14 @@
 
     $("new-resource").addEventListener("click", resetResourceForm);
     $("resource-form").addEventListener("submit", saveResource);
+
+    $("upload-button")?.addEventListener("click", () => $("media-input").click());
+    $("add-folder")?.addEventListener("click", createMediaFolder);
+    $("new-folder-name")?.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      createMediaFolder();
+    });
 
     const dropzone = $("dropzone");
     dropzone.addEventListener("click", () => $("media-input").click());
