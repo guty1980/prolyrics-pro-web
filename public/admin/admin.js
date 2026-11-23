@@ -285,6 +285,10 @@
     backgroundImage: "hero-background",
     image: "hero-image",
     imageAlt: "hero-image-alt",
+    showPhone: "hero-show-phone",
+    phoneImage: "hero-phone-image",
+    phoneLabel: "hero-phone-label",
+    phoneBadge: "hero-phone-badge",
     previewLabel: "hero-preview-label",
     previewKicker: "hero-preview-kicker",
     previewText: "hero-preview-text",
@@ -296,13 +300,14 @@
     stat3Value: "hero-stat3-value",
     stat3Label: "hero-stat3-label",
   };
+  const heroBooleanFields = new Set(["active", "showPhone"]);
 
   function readHeroForm() {
     const slide = {};
     Object.entries(heroFieldMap).forEach(([key, id]) => {
       const node = $(id);
       if (!node) return;
-      if (key === "active") slide[key] = node.checked;
+      if (heroBooleanFields.has(key)) slide[key] = node.checked;
       else if (key === "order") slide[key] = Number(node.value || 0);
       else slide[key] = node.value.trim();
     });
@@ -313,7 +318,7 @@
     Object.entries(heroFieldMap).forEach(([key, id]) => {
       const node = $(id);
       if (!node) return;
-      if (key === "active") node.checked = slide.active !== false;
+      if (heroBooleanFields.has(key)) node.checked = slide[key] !== false;
       else node.value = slide[key] ?? "";
     });
   }
@@ -323,6 +328,7 @@
     if ($("hero-id")) $("hero-id").value = "";
     if ($("hero-order")) $("hero-order").value = String(heroSlides.length + 1);
     if ($("hero-active")) $("hero-active").checked = true;
+    if ($("hero-show-phone")) $("hero-show-phone").checked = true;
   }
 
   function renderHeroList() {

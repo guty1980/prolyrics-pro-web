@@ -209,6 +209,19 @@ import "../assets/styles/global.css";
               <label class="field"><span>Texto alternativo de la imagen</span><input id="hero-image-alt" placeholder="Nombre de la aplicación" /></label>
 
               <hr />
+              <h3>Vista para celular (APK)</h3>
+              <label class="check"><input id="hero-show-phone" type="checkbox" checked /> Mostrar celular junto al monitor</label>
+              <label class="field">
+                <span>Imagen del celular (si la dejas vacía usa la imagen principal)</span>
+                <div class="inline-actions">
+                  <input id="hero-phone-image" placeholder="/api/media?key=..." />
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="hero-phone-image">Elegir de galería</button>
+                </div>
+              </label>
+              <label class="field"><span>Etiqueta del celular</span><input id="hero-phone-label" placeholder="PROLYRICS · APK" /></label>
+              <label class="field"><span>Insignia del celular</span><input id="hero-phone-badge" placeholder="APK · Android" /></label>
+
+              <hr />
               <h3>Vista previa dentro de la portada</h3>
               <label class="field"><span>Etiqueta de la ventana</span><input id="hero-preview-label" placeholder="Presentación · Spanish Worship" /></label>
               <label class="field"><span>Título pequeño</span><input id="hero-preview-kicker" placeholder="Juan 3:16" /></label>

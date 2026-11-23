@@ -135,7 +135,7 @@ a { color: inherit; }
 .inline-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* Dashboard */
-.dashboard { min-height: 100vh; }
+.dashboard { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 .topbar {
   position: sticky;
   top: 0;
@@ -164,15 +164,29 @@ a { color: inherit; }
 .topbar-brand span { display: block; color: var(--muted); font-size: 11px; }
 .topbar-actions { display: flex; gap: 8px; }
 
-.dashboard-body { max-width: 1600px; margin: 0 auto; padding: 26px 28px 60px; }
+.dashboard-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; width: 100%; max-width: 1600px; margin: 0 auto; padding: 26px 28px 60px; }
 
-.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 22px; padding: 5px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel); width: fit-content; }
+.tabs { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 22px; padding: 5px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel); width: fit-content; }
 .tab { padding: 9px 16px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font-weight: 700; cursor: pointer; }
 .tab:hover { color: var(--text); }
 .tab.is-active { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; }
 
 .tab-panel { display: none; }
-.tab-panel.is-active { display: block; }
+.tab-panel.is-active {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 10px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.55) rgba(255, 255, 255, 0.04);
+}
+.tab-panel.is-active::-webkit-scrollbar { width: 9px; }
+.tab-panel.is-active::-webkit-scrollbar-track { border-radius: 999px; background: rgba(255, 255, 255, 0.04); }
+.tab-panel.is-active::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(139, 92, 246, 0.55); }
+.tab-panel.is-active::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.8); }
 
 .panel-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
 .panel-heading.compact { margin-top: 28px; margin-bottom: 14px; }
