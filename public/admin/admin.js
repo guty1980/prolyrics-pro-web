@@ -1176,6 +1176,7 @@
           <div class="media-name" title="${esc(item.name)}">${esc(item.name)}</div>
           <div class="media-meta">${formatSize(item.size)} · ${esc((item.type || "archivo").split("/").pop())}</div>
           <div class="media-actions">
+            <button class="btn btn-ghost btn-small" data-rename-media="${esc(item.key)}" type="button">Renombrar</button>
             <button class="btn btn-ghost btn-small" data-copy-media="${esc(item.key)}" type="button">Copiar URL</button>
             <button class="btn btn-ghost btn-small" data-use-media="${esc(item.key)}" data-use-kind="${(item.type || "").startsWith("image/") ? "image" : "file"}" type="button">Usar en formulario</button>
             <button class="btn btn-ghost btn-small" data-use-cover="${esc(item.key)}" type="button">Portada</button>
@@ -1190,6 +1191,9 @@
 
   function bindMediaCards(root = $("media-sections")) {
     if (!root) return;
+    root.querySelectorAll("[data-rename-media]").forEach((button) => {
+      button.addEventListener("click", () => renameMedia(button.dataset.renameMedia));
+    });
     root.querySelectorAll("[data-copy-media]").forEach((button) => {
       button.addEventListener("click", () => copyMediaUrl(button.dataset.copyMedia));
     });
@@ -1360,6 +1364,7 @@
           <div class="media-name" title="${esc(item.name)}">${esc(item.name)}</div>
           <div class="media-meta">${formatSize(item.size)} · ${esc((item.type || "archivo").split("/").pop())}</div>
           <div class="media-actions">
+            <button class="btn btn-ghost btn-small" data-rename-media="${esc(item.key)}" type="button">Renombrar</button>
             ${needsPreview ? `<button class="btn btn-ghost btn-small" data-make-preview="${esc(item.key)}" type="button">Generar miniatura</button>` : ""}
             <button class="btn btn-ghost btn-small" data-copy-download="${esc(item.key)}" type="button">Copiar URL</button>
             <a class="btn btn-primary btn-small" href="${esc(downloadUrl(item))}" target="_blank" rel="noopener">Descargar</a>
@@ -1596,6 +1601,32 @@
       toast("URL de descarga copiada al portapapeles.");
     } catch {
       window.prompt("Copia esta URL de descarga:", url);
+    }
+  }
+
+  async function renameMedia(key) {
+    const item = mediaByKey(key);
+    if (!item) return;
+    const next = window.prompt("Nuevo nombre para el archivo:", item.name || "");
+    if (next === null) return;
+    const name = String(next).trim().slice(0, 160);
+    if (!name) return toast("El nombre no puede quedar vacío.", true);
+    if (name === item.name) return;
+    try {
+      const response = await fetch("/api/admin/media/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, name }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo renombrar.");
+      item.name = name;
+      renderMediaGallery();
+      renderDownloadSections();
+      toast("Archivo renombrado.");
+      window.setTimeout(loadMedia, 3000);
+    } catch (error) {
+      toast(error.message, true);
     }
   }
 

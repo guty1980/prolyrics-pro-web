@@ -129,18 +129,29 @@ async function saveMediaFolderMap(map) {
   await writeJSON(contentStore(), "media-folder-map", map);
 }
 
+async function getMediaNameMap() {
+  const stored = await readJSON(contentStore(), "media-name-map", {});
+  return stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
+}
+
+async function saveMediaNameMap(map) {
+  await writeJSON(contentStore(), "media-name-map", map);
+}
+
 async function getMediaItems() {
   const store = mediaStore();
   const folderMap = await getMediaFolderMap();
+  const nameMap = await getMediaNameMap();
   const { blobs } = await store.list();
   const items = await Promise.all(
     blobs.map(async ({ key }) => {
       const entry = await store.getWithMetadata(key, { consistency: "strong" });
       const metadata = entry?.metadata || {};
       const hasMappedFolder = Object.prototype.hasOwnProperty.call(folderMap, key);
+      const hasMappedName = Object.prototype.hasOwnProperty.call(nameMap, key);
       return {
         key,
-        name: metadata.name || key.split("/").pop() || key,
+        name: hasMappedName ? String(nameMap[key] || "") : metadata.name || key.split("/").pop() || key,
         type: metadata.type || "application/octet-stream",
         size: Number(metadata.size || 0),
         alt: metadata.alt || "",
@@ -227,7 +238,10 @@ async function streamMedia(key, forceDownload = false) {
   if (!entry || !entry.data) return notFoundMedia();
 
   const metadata = entry.metadata || {};
-  const name = metadata.name || key.split("/").pop() || "archivo";
+  const nameMap = await getMediaNameMap();
+  const name = Object.prototype.hasOwnProperty.call(nameMap, key)
+    ? String(nameMap[key] || "")
+    : metadata.name || key.split("/").pop() || "archivo";
   const type = metadata.type || contentTypeFor(name);
   const disposition = forceDownload ? "attachment" : "inline";
 
@@ -924,6 +938,22 @@ export default async function handler(request) {
     });
   }
 
+  if (route === "admin/media/rename" && method === "POST") {
+    if (!requireAdmin(request)) return unauthorized();
+    const body = await readJson(request);
+    const key = String(body.key || "");
+    const name = String(body.name || "").trim().slice(0, 160);
+    if (!key) return error("Falta la clave del archivo.", 400);
+    if (!name) return error("Escribe un nombre para el archivo.", 400);
+    if (/[/\\]/.test(name)) return error("El nombre no puede incluir / ni \\.", 400);
+    const exists = await mediaStore().getWithMetadata(key, { consistency: "strong" });
+    if (!exists) return error("Archivo no encontrado.", 404);
+    const nameMap = await getMediaNameMap();
+    nameMap[key] = name;
+    await saveMediaNameMap(nameMap);
+    return json({ ok: true, key, name });
+  }
+
   if (route === "admin/media" && method === "DELETE") {
     if (!requireAdmin(request)) return unauthorized();
     const body = await readJson(request);
@@ -936,14 +966,21 @@ export default async function handler(request) {
     const keys = [key, ...related];
     await Promise.all(keys.map((itemKey) => mediaStore().delete(itemKey)));
     const folderMap = await getMediaFolderMap();
-    let changed = false;
+    const nameMap = await getMediaNameMap();
+    let folderChanged = false;
+    let nameChanged = false;
     keys.forEach((itemKey) => {
       if (Object.prototype.hasOwnProperty.call(folderMap, itemKey)) {
         delete folderMap[itemKey];
-        changed = true;
+        folderChanged = true;
+      }
+      if (Object.prototype.hasOwnProperty.call(nameMap, itemKey)) {
+        delete nameMap[itemKey];
+        nameChanged = true;
       }
     });
-    if (changed) await saveMediaFolderMap(folderMap);
+    if (folderChanged) await saveMediaFolderMap(folderMap);
+    if (nameChanged) await saveMediaNameMap(nameMap);
     return json({ ok: true });
   }
 
