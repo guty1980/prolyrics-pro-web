@@ -87,20 +87,59 @@ const resources = (await getCollection("resources", ({ data }) => !data.draft))
   const searchInput = document.getElementById("search-input");
   const sortSelect = document.getElementById("sort-select");
   const chips = Array.from(document.querySelectorAll("[data-filter]"));
-  const cards = Array.from(document.querySelectorAll("[data-card]"));
   const grid = document.getElementById("resources-grid");
   const count = document.getElementById("result-count");
   const empty = document.getElementById("empty-state");
 
   let currentCategory = initialCategory;
+  let cards = Array.from(document.querySelectorAll("[data-card]"));
+
+  const escapeHtml = (value) =>
+    String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    })[char]);
+
+  const cardMarkup = (item) => `
+    <a
+      href="/recurso/?slug=${encodeURIComponent(item.slug)}"
+      class="card group flex h-full flex-col border border-slate-200/80"
+      data-card
+      data-title="${escapeHtml(String(item.title || "").toLowerCase())}"
+      data-category="${escapeHtml(item.category)}"
+      data-format="${escapeHtml(String(item.format || "").toLowerCase())}"
+      data-premium="${item.premium ? "true" : "false"}"
+      data-featured="${item.featured ? "true" : "false"}"
+      data-tags="${escapeHtml((item.tags || []).join(" ").toLowerCase())}"
+    >
+      <div class="relative aspect-video overflow-hidden bg-ink-900">
+        <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" loading="lazy" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        <div class="absolute inset-x-0 top-0 flex items-start justify-between p-3">
+          <span class="badge bg-black/60 text-white backdrop-blur">${escapeHtml(item.category)}</span>
+          ${item.premium
+            ? '<span class="badge bg-gradient-to-r from-amber-400 to-orange-500 text-ink-900">PRO</span>'
+            : '<span class="badge bg-emerald-500 text-white">Gratis</span>'}
+        </div>
+      </div>
+      <div class="flex flex-1 flex-col p-5">
+        <div class="mb-2 flex items-center gap-2 text-xs font-medium text-violet-600">
+          ${escapeHtml(item.format)}
+        </div>
+        <h3 class="text-lg font-bold leading-snug text-slate-900 transition-colors group-hover:text-violet-700">${escapeHtml(item.title)}</h3>
+        <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">${escapeHtml(item.description)}</p>
+        <span class="mt-auto pt-5 text-sm font-semibold text-violet-600">Ver recurso <span class="inline-block transition-transform group-hover:translate-x-1">→</span></span>
+      </div>
+    </a>`;
 
   const apply = () => {
     const query = searchInput.value.trim().toLowerCase();
     let visible = 0;
 
     cards.forEach((card) => {
-      const matchesCategory =
-        currentCategory === "Todas" || card.dataset.category === currentCategory;
+      const matchesCategory = currentCategory === "Todas" || card.dataset.category === currentCategory;
       const haystack = `${card.dataset.title} ${card.dataset.format} ${card.dataset.tags}`;
       const matchesQuery = !query || haystack.includes(query);
       const show = matchesCategory && matchesQuery;
@@ -144,4 +183,16 @@ const resources = (await getCollection("resources", ({ data }) => !data.draft))
   searchInput.addEventListener("input", apply);
   sortSelect.addEventListener("change", apply);
   apply();
+
+  fetch("/api/resources")
+    .then((response) => response.json())
+    .then((data) => {
+      if (!Array.isArray(data.resources) || data.resources.length === 0) return;
+      grid.innerHTML = data.resources.map(cardMarkup).join("");
+      cards = Array.from(document.querySelectorAll("[data-card]"));
+      apply();
+    })
+    .catch(() => {
+      // Si la API no está disponible se mantienen los recursos generados en el build.
+    });
 </script>

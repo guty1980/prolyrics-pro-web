@@ -1,0 +1,99 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Recurso | PROLYRICS PRO"
+  description="Detalle del recurso en PROLYRICS PRO."
+  type="article"
+>
+  <article id="dynamic-resource" class="py-14">
+    <div class="container">
+      <p class="text-slate-500">Cargando recurso…</p>
+    </div>
+  </article>
+</BaseLayout>
+
+<script>
+  const escapeHtml = (value) =>
+    String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    })[char]);
+
+  const slug = new URLSearchParams(window.location.search).get("slug") || "";
+  const container = document.getElementById("dynamic-resource");
+
+  fetch("/api/resources")
+    .then((response) => response.json())
+    .then((data) => {
+      const item = (data.resources || []).find((resource) => resource.slug === slug);
+      if (!item) {
+        container.innerHTML = `
+          <div class="container">
+            <a href="/recursos/" class="text-sm font-semibold text-violet-600">← Volver a la biblioteca</a>
+            <h1 class="mt-8 text-3xl font-black">Recurso no encontrado</h1>
+            <p class="mt-3 text-slate-500">Puede que el enlace haya cambiado. Explora la biblioteca para encontrar recursos similares.</p>
+          </div>`;
+        return;
+      }
+
+      document.title = `${item.title} | PROLYRICS PRO`;
+
+      container.innerHTML = `
+        <section class="border-b border-slate-200 bg-slate-50 py-12">
+          <div class="container">
+            <a href="/recursos/" class="inline-flex items-center gap-2 text-sm font-semibold text-violet-600 hover:text-violet-800">← Volver a la biblioteca</a>
+            <div class="mt-8 grid gap-10 lg:grid-cols-2 lg:items-center">
+              <div>
+                <div class="flex flex-wrap gap-2">
+                  <span class="badge bg-violet-100 text-violet-700">${escapeHtml(item.category)}</span>
+                  <span class="badge bg-white text-slate-600 ring-1 ring-slate-200">${escapeHtml(item.format)}</span>
+                  ${item.premium
+                    ? '<span class="badge bg-gradient-to-r from-amber-400 to-orange-500 text-ink-900">Plan PRO</span>'
+                    : '<span class="badge bg-emerald-100 text-emerald-700">Gratis</span>'}
+                </div>
+                <h1 class="mt-5 text-4xl font-black md:text-5xl">${escapeHtml(item.title)}</h1>
+                <p class="mt-5 text-lg leading-relaxed text-slate-600">${escapeHtml(item.description)}</p>
+                ${
+                  (item.tags || []).length
+                    ? `<div class="mt-6 flex flex-wrap gap-2">${item.tags
+                        .map((tag) => `<span class="rounded-lg bg-white px-3 py-1 text-xs font-medium text-slate-500 ring-1 ring-slate-200">#${escapeHtml(tag)}</span>`)
+                        .join("")}</div>`
+                    : ""
+                }
+                <div class="mt-8 flex flex-wrap gap-4">
+                  <a href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white hover:bg-violet-700">Descargar archivo ↓</a>
+                  <a href="/planes/" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 font-semibold text-slate-700 hover:border-violet-300">Ver planes</a>
+                </div>
+              </div>
+              <div class="overflow-hidden rounded-2xl border border-slate-200 bg-ink-900 shadow-xl">
+                <img src="${escapeHtml(item.image)}" alt="Vista previa de ${escapeHtml(item.title)}" class="aspect-video w-full object-cover" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="py-14">
+          <div class="container grid gap-12 lg:grid-cols-[1fr_320px]">
+            <div class="prose prose-slate max-w-none">
+              <p>${escapeHtml(item.body || item.description)}</p>
+            </div>
+            <aside class="h-fit rounded-2xl border border-slate-200 bg-slate-50 p-6">
+              <h2 class="text-lg font-bold">Detalles del recurso</h2>
+              <dl class="mt-5 space-y-4 text-sm">
+                <div class="flex justify-between gap-4 border-b border-slate-200 pb-3"><dt class="text-slate-500">Categoría</dt><dd class="font-semibold text-slate-900">${escapeHtml(item.category)}</dd></div>
+                <div class="flex justify-between gap-4 border-b border-slate-200 pb-3"><dt class="text-slate-500">Formato</dt><dd class="font-semibold text-slate-900">${escapeHtml(item.format)}</dd></div>
+                <div class="flex justify-between gap-4"><dt class="text-slate-500">Acceso</dt><dd class="font-semibold text-slate-900">${item.premium ? "Plan PRO" : "Gratis"}</dd></div>
+              </dl>
+            </aside>
+          </div>
+        </section>`;
+    })
+    .catch(() => {
+      container.innerHTML = '<div class="container"><p class="text-slate-500">No se pudo cargar el recurso.</p></div>';
+    });
+</script>

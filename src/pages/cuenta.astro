@@ -1,0 +1,224 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Mi cuenta | CREATIVOX"
+  description="Accede a tus productos digitales de CREATIVOX con tu cuenta."
+>
+  <section class="bg-slate-50 py-16">
+  <div class="container max-w-5xl">
+    <!-- Vista: access -->
+    <div id="auth-view" class="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
+      <div class="text-center">
+        <span class="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">Área de clientes</span>
+        <h1 class="mt-3 text-3xl font-black text-slate-900">Mi cuenta CREATIVOX</h1>
+        <p class="mt-2 text-sm text-slate-500">Ingresa para acceder a tus productos digitales.</p>
+      </div>
+
+      <div class="mt-8 flex rounded-xl bg-slate-100 p-1" role="tablist">
+        <button id="tab-login" class="flex-1 rounded-lg bg-white py-2 text-sm font-semibold text-slate-900 shadow-sm" type="button">Iniciar sesión</button>
+        <button id="tab-register" class="flex-1 py-2 text-sm font-semibold text-slate-500" type="button">Crear cuenta</button>
+      </div>
+
+      <form id="login-form" class="mt-8 space-y-5">
+        <label class="block">
+          <span class="text-sm font-semibold text-slate-700">Email</span>
+          <input id="login-email" type="email" required autocomplete="email" class="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200" />
+        </label>
+        <label class="block">
+          <span class="text-sm font-semibold text-slate-700">Contraseña</span>
+          <input id="login-password" type="password" required autocomplete="current-password" class="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200" />
+        </label>
+        <button class="brand-gradient w-full rounded-xl py-3 font-semibold text-white shadow-lg" type="submit">Entrar a mi cuenta</button>
+      </form>
+
+      <form id="register-form" class="mt-8 hidden space-y-5">
+        <label class="block">
+          <span class="text-sm font-semibold text-slate-700">Nombre</span>
+          <input id="register-name" type="text" class="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200" />
+        </label>
+        <label class="block">
+          <span class="text-sm font-semibold text-slate-700">Email</span>
+          <input id="register-email" type="email" required autocomplete="email" class="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200" />
+        </label>
+        <label class="block">
+          <span class="text-sm font-semibold text-slate-700">Contraseña (mínimo 6 caracteres)</span>
+          <input id="register-password" type="password" required minlength="6" autocomplete="new-password" class="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200" />
+        </label>
+        <button class="brand-gradient w-full rounded-xl py-3 font-semibold text-white shadow-lg" type="submit">Crear mi cuenta</button>
+        <p class="text-center text-xs text-slate-500">Después de registrarte, el administrador asignará los productos a los que tienes acceso.</p>
+      </form>
+
+      <p id="auth-error" class="mt-5 hidden rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert"></p>
+    </div>
+
+    <!-- Vista: dashboard -->
+    <div id="account-view" class="hidden">
+      <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <span class="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">Área de clientes</span>
+          <h1 class="mt-2 text-3xl font-black text-slate-900">Hola, <span id="account-name">bienvenido</span></h1>
+          <p class="mt-1 text-sm text-slate-500" id="account-email"></p>
+        </div>
+        <button id="logout-button" class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:border-violet-400" type="button">Cerrar sesión</button>
+      </div>
+
+      <div class="mt-10">
+        <h2 class="text-xl font-extrabold text-slate-900">Tus productos</h2>
+        <p class="mt-1 text-sm text-slate-500">Aquí están los productos a los que tienes acceso.</p>
+        <div id="account-products" class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+        <p id="account-empty" class="mt-8 hidden rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
+          Todavía no tienes productos asignados. Escríbenos a <a href="mailto:hola@creativox.com" class="font-semibold text-violet-600">hola@creativox.com</a> para solicitar acceso.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const esc = (value) =>
+    String(value ?? "").replace(/[&<>"']/g, (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]),
+    );
+
+  const $ = (id) => document.getElementById(id);
+  const authView = $("auth-view");
+  const accountView = $("account-view");
+  const errorNode = $("auth-error");
+
+  function showError(message) {
+    if (!errorNode) return;
+    errorNode.textContent = message;
+    errorNode.classList.remove("hidden");
+  }
+
+  function clearError() {
+    errorNode?.classList.add("hidden");
+  }
+
+  function setMode(mode) {
+    const login = mode === "login";
+    $("login-form")?.classList.toggle("hidden", !login);
+    $("register-form")?.classList.toggle("hidden", login);
+    $("tab-login")?.classList.toggle("bg-white", login);
+    $("tab-login")?.classList.toggle("shadow-sm", login);
+    $("tab-register")?.classList.toggle("bg-white", !login);
+    $("tab-register")?.classList.toggle("shadow-sm", !login);
+    clearError();
+  }
+
+  function redirectIfNeeded() {
+    const redirect = new URLSearchParams(window.location.search).get("redirect");
+    if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+      window.location.href = redirect;
+    }
+  }
+
+  function renderAccount(data) {
+    authView?.classList.add("hidden");
+    accountView?.classList.remove("hidden");
+    const user = data.user || {};
+    if ($("account-name")) $("account-name").textContent = user.name || user.email?.split("@")[0] || "bienvenido";
+    if ($("account-email")) $("account-email").textContent = user.email || "";
+
+    const products = data.products || [];
+    const grid = $("account-products");
+    const empty = $("account-empty");
+    if (!grid || !empty) return;
+
+    if (!products.length) {
+      grid.innerHTML = "";
+      empty.classList.remove("hidden");
+      return;
+    }
+
+    grid.innerHTML = products
+      .map((product) => {
+        const url = product.fileKey
+          ? `/api/product/file?slug=${encodeURIComponent(product.slug)}&key=${encodeURIComponent(product.fileKey)}`
+          : product.fileUrl || `/producto/?slug=${encodeURIComponent(product.slug)}`;
+        return `
+          <a href="${esc(url)}" class="card group flex flex-col" target="_blank" rel="noopener noreferrer">
+            <div class="relative aspect-video overflow-hidden bg-ink-900">
+              <img src="${esc(product.image || "/og-image.png")}" alt="${esc(product.title)}" class="h-full w-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
+            </div>
+            <div class="p-5">
+              <h3 class="text-lg font-extrabold text-slate-900">${esc(product.title)}</h3>
+              <p class="mt-1 line-clamp-1 text-sm text-slate-500">${esc(product.tagline || "")}</p>
+              <p class="mt-4 text-sm font-semibold text-violet-600">Acceder al producto →</p>
+            </div>
+          </a>`;
+      })
+      .join("");
+  }
+
+  async function api(url, options) {
+    const response = await fetch(url, { credentials: "same-origin", ...options });
+    let data = {};
+    try { data = await response.json(); } catch { data = {}; }
+    if (!response.ok) throw new Error(data.error || `Error ${response.status}`);
+    return data;
+  }
+
+  $("tab-login")?.addEventListener("click", () => setMode("login"));
+  $("tab-register")?.addEventListener("click", () => setMode("register"));
+
+  $("login-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearError();
+    try {
+      await api("/api/account/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: $("login-email").value,
+          password: $("login-password").value,
+        }),
+      });
+      redirectIfNeeded();
+      const data = await api("/api/account/session");
+      renderAccount(data);
+    } catch (error) {
+      showError(error.message);
+    }
+  });
+
+  $("register-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearError();
+    try {
+      await api("/api/account/register", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: $("register-name").value,
+          email: $("register-email").value,
+          password: $("register-password").value,
+        }),
+      });
+      redirectIfNeeded();
+      const data = await api("/api/account/session");
+      renderAccount(data);
+    } catch (error) {
+      showError(error.message);
+    }
+  });
+
+  $("logout-button")?.addEventListener("click", async () => {
+    try { await api("/api/account/logout", { method: "POST" }); } catch {}
+    window.location.reload();
+  });
+
+  (async () => {
+    const requested = new URLSearchParams(window.location.search).get("mode");
+    if (requested === "register") setMode("register");
+    try {
+      const data = await api("/api/account/session");
+      if (data.ok && data.user) renderAccount(data);
+    } catch {
+      authView?.classList.remove("hidden");
+    }
+  })();
+  </script>
+</BaseLayout>

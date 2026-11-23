@@ -1,0 +1,404 @@
+---
+import "../assets/styles/global.css";
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Panel de administración | CREATIVOX</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/admin/admin.css" />
+  </head>
+  <body>
+    <div id="login-view" class="login-shell">
+      <form id="login-form" class="login-card">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" />
+            <path d="M19.4 15a1.7 1.7 0 00.34 1.88l.06.06a2 2 0 11-2.83 2.83l-.06-.06A1.7 1.7 0 0015 19.4a1.7 1.7 0 00-1 .6 1.7 1.7 0 00-.4 1.1V21a2 2 0 11-4 0v-.09A1.7 1.7 0 008.3 19.4a1.7 1.7 0 00-1.88.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.6 15a1.7 1.7 0 00-.6-1 1.7 1.7 0 00-1.1-.4H3a2 2 0 110-4h.09A1.7 1.7 0 004.6 8.3a1.7 1.7 0 00-.34-1.88l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 009 4.6a1.7 1.7 0 001-.6 1.7 1.7 0 00.4-1.1V3a2 2 0 114 0v.09a1.7 1.7 0 00.5 1.2 1.7 1.7 0 001.1.4 1.7 1.7 0 001.88-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.4 9c.12.38.36.7.68.93.3.22.66.34 1.03.34H21a2 2 0 110 4h-.09a1.7 1.7 0 00-1.51.73z" />
+          </svg>
+        </div>
+        <p class="eyebrow">CREATIVOX</p>
+        <h1>Acceso de administrador</h1>
+        <p class="muted">Introduce la clave para gestionar productos, usuarios, textos, imágenes y archivos.</p>
+
+        <label class="field">
+          <span>Clave de administrador</span>
+          <input id="admin-password" name="password" type="password" autocomplete="current-password" required placeholder="••••••••" />
+        </label>
+
+        <button class="btn btn-primary btn-block" type="submit">Entrar al panel</button>
+        <p id="login-error" class="form-error" role="alert"></p>
+      </form>
+    </div>
+
+    <div id="dashboard" class="dashboard" hidden>
+      <header class="topbar">
+        <div class="topbar-brand">
+          <span class="brand-icon">CX</span>
+          <div>
+            <strong>CREATIVOX</strong>
+            <span>Panel de administración</span>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <a class="btn btn-ghost" href="/" target="_blank" rel="noopener">Ver sitio ↗</a>
+          <button id="logout-button" class="btn btn-ghost" type="button">Salir</button>
+        </div>
+      </header>
+
+      <div class="dashboard-body">
+        <nav class="tabs" role="tablist" aria-label="Secciones del panel">
+          <button class="tab is-active" data-tab="visual" type="button" role="tab">Editor visual</button>
+          <button class="tab" data-tab="productos" type="button" role="tab">Productos</button>
+          <button class="tab" data-tab="usuarios" type="button" role="tab">Usuarios</button>
+          <button class="tab" data-tab="marca" type="button" role="tab">Marca</button>
+          <button class="tab" data-tab="recursos" type="button" role="tab">Recursos</button>
+          <button class="tab" data-tab="medios" type="button" role="tab">Medios</button>
+          <button class="tab" data-tab="ajustes" type="button" role="tab">Ajustes</button>
+        </nav>
+
+        <!-- EDITOR VISUAL -->
+        <section class="tab-panel is-active" data-panel="visual">
+          <div class="panel-heading">
+            <div>
+              <h2>Editor visual</h2>
+              <p>Haz clic en cualquier texto, imagen o sección del sitio para editarlo. Los cambios se guardan en la nube y aparecen en la web pública al recargar.</p>
+            </div>
+            <div class="inline-actions">
+              <button id="reload-frame" class="btn btn-ghost" type="button">Recargar vista</button>
+              <a class="btn btn-primary" href="/?edit=1" target="_blank" rel="noopener">Abrir en pestaña nueva ↗</a>
+            </div>
+          </div>
+
+          <div class="editor-layout">
+            <div class="frame-wrap">
+              <iframe id="site-frame" src="/?edit=1" title="Vista editable de CREATIVOX"></iframe>
+            </div>
+
+            <aside class="editor-side">
+              <div class="side-card">
+                <h3>Elemento seleccionado</h3>
+                <p id="selection-hint" class="muted">Selecciona algo en la vista previa.</p>
+                <div id="selection-form" hidden>
+                  <p class="selector-label" id="selected-selector"></p>
+                  <label class="field">
+                    <span>Modo</span>
+                    <select id="edit-mode">
+                      <option value="text">Texto simple</option>
+                      <option value="html">HTML / sección</option>
+                    </select>
+                  </label>
+                  <label class="field" id="field-text">
+                    <span>Texto</span>
+                    <textarea id="edit-text" rows="4"></textarea>
+                  </label>
+                  <label class="field" id="field-html" hidden>
+                    <span>HTML</span>
+                    <textarea id="edit-html" rows="5" spellcheck="false"></textarea>
+                  </label>
+                  <label class="field">
+                    <span>URL (src)</span>
+                    <input id="edit-src" type="text" placeholder="/api/media?key=..." />
+                  </label>
+                  <label class="field">
+                    <span>Enlace (href)</span>
+                    <input id="edit-href" type="text" />
+                  </label>
+                  <label class="field">
+                    <span>Texto alternativo (alt)</span>
+                    <input id="edit-alt" type="text" />
+                  </label>
+                  <label class="field">
+                    <span>Clases CSS</span>
+                    <input id="edit-class" type="text" />
+                  </label>
+                  <label class="field">
+                    <span>Estilo inline</span>
+                    <input id="edit-style" type="text" />
+                  </label>
+                  <div class="inline-actions">
+                    <button id="save-selection" class="btn btn-primary" type="button">Guardar cambio</button>
+                    <button id="delete-selection" class="btn btn-danger" type="button">Restaurar</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="side-card">
+                <h3>Añadir sección HTML</h3>
+                <p class="muted">Inserta un bloque nuevo al final, antes o después de un elemento.</p>
+                <label class="field">
+                  <span>Posición</span>
+                  <select id="section-position">
+                    <option value="append">Al final de la página</option>
+                    <option value="before">Antes del elemento seleccionado</option>
+                    <option value="after">Después del elemento seleccionado</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Selector destino (opcional)</span>
+                  <input id="section-selector" type="text" placeholder="Se rellena al seleccionar" />
+                </label>
+                <label class="field">
+                  <span>HTML de la sección</span>
+                  <textarea id="section-html" rows="5" spellcheck="false"></textarea>
+                </label>
+                <button id="save-section" class="btn btn-primary btn-block" type="button">Añadir sección</button>
+              </div>
+
+              <div class="side-card">
+                <h3>Cambios guardados</h3>
+                <div id="changes-list" class="changes-list"><p class="muted">Cargando…</p></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <!-- PRODUCTOS -->
+        <section class="tab-panel" data-panel="productos">
+          <div class="panel-heading">
+            <div>
+              <h2>Productos digitales</h2>
+              <p>Crea y edita los productos del catálogo. Carga su logo, imagen, video y los detalles de venta y funcionalidades (uno por línea).</p>
+            </div>
+            <button id="new-product" class="btn btn-ghost" type="button">+ Nuevo producto</button>
+          </div>
+
+          <div class="split-layout">
+            <form id="product-form" class="form-card">
+              <h3>Datos del producto</h3>
+              <input id="product-original-slug" type="hidden" />
+              <label class="field"><span>Título</span><input id="product-title" required /></label>
+              <label class="field"><span>Slug (URL)</span><input id="product-slug" placeholder="mi-producto" /></label>
+              <label class="field"><span>Frase corta / tagline</span><input id="product-tagline" /></label>
+              <label class="field">
+                <span>Categoría</span>
+                <select id="product-category">
+                  <option>Software</option><option>Aplicación</option><option>Recursos</option><option>Plantillas</option><option>Video</option><option>Otro</option>
+                </select>
+              </label>
+              <div class="form-row">
+                <label class="field"><span>Precio (número)</span><input id="product-price" type="number" step="0.01" value="0" /></label>
+                <label class="field"><span>Etiqueta de precio</span><input id="product-price-label" placeholder="$19 / mes" /></label>
+              </div>
+              <label class="field"><span>Descripción</span><textarea id="product-description" rows="3"></textarea></label>
+              <label class="field">
+                <span>Imagen principal (URL)</span>
+                <div class="inline-actions">
+                  <input id="product-image" placeholder="/api/media?key=..." />
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="product-image">Elegir</button>
+                </div>
+              </label>
+              <label class="field">
+                <span>Logo del producto (URL)</span>
+                <div class="inline-actions">
+                  <input id="product-logo" placeholder="/api/media?key=..." />
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="product-logo">Elegir</button>
+                </div>
+              </label>
+              <label class="field"><span>Video / tráiler (URL)</span><input id="product-trailer" placeholder="/api/media?key=..." /></label>
+              <label class="field"><span>Galería (URLs, una por línea)</span><textarea id="product-gallery" rows="3"></textarea></label>
+              <label class="field"><span>Detalles de venta (uno por línea)</span><textarea id="product-sale-details" rows="4"></textarea></label>
+              <label class="field"><span>Funcionalidades (una por línea)</span><textarea id="product-functionalities" rows="4"></textarea></label>
+              <label class="field"><span>Etiquetas (separadas por coma)</span><input id="product-tags" /></label>
+              <label class="field"><span>Archivo descargable (clave de medios)</span><input id="product-file-key" placeholder="Copia la clave desde Medios" /></label>
+              <label class="field"><span>O URL de archivo externo</span><input id="product-file-url" /></label>
+              <label class="field"><span>Orden</span><input id="product-order" type="number" value="0" /></label>
+              <label class="check"><input id="product-featured" type="checkbox" /> Destacado en el carrusel</label>
+              <label class="check"><input id="product-draft" type="checkbox" /> Borrador (oculto)</label>
+              <label class="check"><input id="product-requires" type="checkbox" checked /> Requiere cuenta con acceso</label>
+              <label class="check"><input id="product-public" type="checkbox" /> Descarga pública (sin cuenta)</label>
+              <button class="btn btn-primary btn-block" type="submit">Guardar producto</button>
+            </form>
+
+            <div class="list-card">
+              <h3>Productos publicados</h3>
+              <div id="products-list" class="resources-list"><p class="muted">Cargando…</p></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- USUARIOS -->
+        <section class="tab-panel" data-panel="usuarios">
+          <div class="panel-heading">
+            <div>
+              <h2>Usuarios y accesos</h2>
+              <p>Crea usuarios y asígnale los productos a los que puede acceder. También podés editar cuentas creadas desde el formulario de registro.</p>
+            </div>
+            <button id="new-user" class="btn btn-ghost" type="button">+ Nuevo usuario</button>
+          </div>
+
+          <div class="split-layout">
+            <form id="user-form" class="form-card">
+              <h3>Datos del usuario</h3>
+              <input id="user-id" type="hidden" />
+              <label class="field"><span>Email</span><input id="user-email" type="email" required /></label>
+              <label class="field"><span>Nombre</span><input id="user-name" /></label>
+              <label class="field"><span>Contraseña (dejar vacío para conservar)</span><input id="user-password" type="password" minlength="6" /></label>
+              <label class="field">
+                <span>Rol</span>
+                <select id="user-role">
+                  <option value="cliente">Cliente</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </label>
+              <label class="check"><input id="user-active" type="checkbox" checked /> Cuenta activa</label>
+              <div class="field">
+                <span>Productos con acceso</span>
+                <div id="user-products" class="check-list"><p class="muted">Cargando productos…</p></div>
+              </div>
+              <button class="btn btn-primary btn-block" type="submit">Guardar usuario</button>
+            </form>
+
+            <div class="list-card">
+              <h3>Usuarios registrados</h3>
+              <div id="users-list" class="resources-list"><p class="muted">Cargando…</p></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- MARCA -->
+        <section class="tab-panel" data-panel="marca">
+          <div class="panel-heading">
+            <div>
+              <h2>Marca CREATIVOX</h2>
+              <p>Configura el nombre, el logo y los colores de la página. Subí el logo en la pestaña Medios y pegá aquí la URL.</p>
+            </div>
+          </div>
+
+          <form id="brand-form" class="form-card brand-form">
+            <label class="field"><span>Nombre de la empresa</span><input id="brand-site-name" value="CREATIVOX" /></label>
+            <label class="field"><span>Frase / tagline</span><input id="brand-tagline" value="Productos digitales" /></label>
+            <label class="field">
+              <span>URL del logo</span>
+              <div class="inline-actions">
+                <input id="brand-logo-url" placeholder="/api/media?key=..." />
+                <button class="btn btn-ghost btn-small" type="button" data-pick-target="brand-logo-url">Elegir de medios</button>
+              </div>
+            </label>
+            <div class="form-row">
+              <label class="field"><span>Color principal</span><input id="brand-primary" type="color" value="#2900ff" /></label>
+              <label class="field"><span>Color secundario</span><input id="brand-primary-2" type="color" value="#5b21b6" /></label>
+              <label class="field"><span>Color de acento</span><input id="brand-accent" type="color" value="#c4b5fd" /></label>
+            </div>
+            <label class="field"><span>Email de contacto</span><input id="brand-email" type="email" value="hola@creativox.com" /></label>
+            <div id="brand-preview" class="brand-preview">
+              <span class="brand-preview-mark">CX</span>
+              <div><strong id="brand-preview-name">CREATIVOX</strong><span id="brand-preview-tagline">Productos digitales</span></div>
+            </div>
+            <button class="btn btn-primary btn-block" type="submit">Guardar marca</button>
+          </form>
+        </section>
+
+        <!-- RECURSOS -->
+        <section class="tab-panel" data-panel="recursos">
+          <div class="panel-heading">
+            <div>
+              <h2>Recursos de PROLYRICS</h2>
+              <p>Biblioteca interna del producto PROLYRICS. Crea, edita o elimina recursos. Usa las URLs de la pestaña Medios para imagen y archivo descargable.</p>
+            </div>
+            <button id="new-resource" class="btn btn-ghost" type="button">+ Nuevo recurso</button>
+          </div>
+
+          <div class="split-layout">
+            <form id="resource-form" class="form-card">
+              <h3>Datos del recurso</h3>
+              <input id="resource-original-slug" type="hidden" />
+              <label class="field"><span>Título</span><input id="resource-title" required /></label>
+              <label class="field"><span>Slug (URL)</span><input id="resource-slug" placeholder="mi-recurso" /></label>
+              <label class="field">
+                <span>Categoría</span>
+                <select id="resource-category">
+                  <option>Plantillas</option><option>Fondos</option><option>Canciones</option><option>Videos</option><option>Iconos</option>
+                </select>
+              </label>
+              <label class="field"><span>Formato</span><input id="resource-format" value="SVG" /></label>
+              <label class="field"><span>Descripción</span><textarea id="resource-description" rows="3"></textarea></label>
+              <label class="field"><span>Imagen / vista previa (URL)</span><input id="resource-image" /></label>
+              <label class="field"><span>Archivo descargable (URL)</span><input id="resource-file" /></label>
+              <label class="field"><span>Etiquetas (separadas por coma)</span><input id="resource-tags" /></label>
+              <label class="field"><span>Orden</span><input id="resource-order" type="number" value="0" /></label>
+              <label class="field"><span>Contenido / descripción larga</span><textarea id="resource-body" rows="4"></textarea></label>
+              <label class="check"><input id="resource-premium" type="checkbox" /> Plan PRO</label>
+              <label class="check"><input id="resource-featured" type="checkbox" /> Destacado</label>
+              <label class="check"><input id="resource-draft" type="checkbox" /> Borrador (oculto)</label>
+              <button class="btn btn-primary btn-block" type="submit">Guardar recurso</button>
+            </form>
+
+            <div class="list-card">
+              <h3>Recursos publicados</h3>
+              <div id="resources-list" class="resources-list"><p class="muted">Cargando…</p></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- MEDIOS -->
+        <section class="tab-panel" data-panel="medios">
+          <div class="panel-heading">
+            <div>
+              <h2>Biblioteca de medios</h2>
+              <p>Sube imágenes, videos, PDFs o cualquier archivo. Los archivos grandes se envían por fragmentos y se pueden retomar si se interrumpe la subida.</p>
+            </div>
+          </div>
+
+          <div class="form-row media-fields">
+            <label class="field"><span>Carpeta (opcional)</span><input id="media-folder" placeholder="productos, logos, videos…" /></label>
+            <label class="field"><span>Texto alternativo (opcional)</span><input id="media-alt" placeholder="Descripción de la imagen" /></label>
+          </div>
+
+          <div id="dropzone" class="dropzone">
+            <input id="media-input" type="file" multiple hidden />
+            <strong>Arrastra archivos aquí o haz clic para seleccionar</strong>
+            <span>Imágenes, videos, documentos, ZIP… hasta 4.5 GB por archivo</span>
+          </div>
+          <div id="upload-progress" class="upload-progress"></div>
+
+          <div class="panel-heading compact">
+            <h3>Archivos en la nube</h3>
+            <button id="refresh-media" class="btn btn-ghost" type="button">Actualizar</button>
+          </div>
+          <div id="media-grid" class="media-grid"><p class="muted">Cargando…</p></div>
+        </section>
+
+        <!-- AJUSTES -->
+        <section class="tab-panel" data-panel="ajustes">
+          <div class="panel-heading">
+            <div>
+              <h2>Ajustes</h2>
+              <p>Seguridad y mantenimiento del contenido.</p>
+            </div>
+          </div>
+
+          <div class="split-layout">
+            <form id="password-form" class="form-card">
+              <h3>Cambiar clave de administrador</h3>
+              <label class="field"><span>Clave actual</span><input id="current-password" type="password" required /></label>
+              <label class="field"><span>Clave nueva</span><input id="new-password" type="password" required minlength="6" /></label>
+              <button class="btn btn-primary btn-block" type="submit">Actualizar clave</button>
+            </form>
+
+            <div class="form-card">
+              <h3>Restablecer contenido</h3>
+              <p class="muted">Elimina todas las ediciones visuales y secciones personalizadas. Los productos, usuarios, recursos y medios no se borran.</p>
+              <label class="field">
+                <span>Página (deja vacío para todo el sitio)</span>
+                <input id="reset-path" placeholder="/ o /planes" />
+              </label>
+              <button id="reset-content" class="btn btn-danger" type="button">Restablecer ediciones</button>
+
+              <hr />
+              <h3>Almacenamiento</h3>
+              <p class="muted">Los textos, productos y usuarios se guardan en Netlify Blobs. Los videos y archivos se sirven desde <code>/api/media</code>. Cada objeto puede llegar hasta 5 GB; este panel limita la subida a 4.5 GB por archivo.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/admin/admin.js" defer></script>
+  </body>
+</html>

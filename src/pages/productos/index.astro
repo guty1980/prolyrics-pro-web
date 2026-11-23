@@ -1,0 +1,113 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageHeader from "../../components/Sections/PageHeader.astro";
+import { seedProducts } from "../../../netlify/functions/_lib/seed-products.mjs";
+
+const initialProducts = seedProducts
+  .filter((product) => !product.draft)
+  .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+---
+
+<BaseLayout
+  title="Productos digitales | CREATIVOX"
+  description="Explora el catálogo de aplicaciones, software y recursos digitales de CREATIVOX."
+>
+  <PageHeader
+    eyebrow="Catálogo"
+    title="Productos digitales CREATIVOX"
+    subtitle="Herramientas listas para usar. Cada producto con sus detalles de venta y funcionalidades."
+  />
+
+  <section class="py-16">
+    <div class="container">
+      <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h2 class="text-2xl font-extrabold text-slate-900">Todos los productos</h2>
+          <p class="mt-1 text-sm text-slate-500" id="product-count">{initialProducts.length} productos disponibles</p>
+        </div>
+        <a href="/cuenta" class="text-sm font-semibold text-violet-600 hover:text-violet-800">¿Ya tienes cuenta? Accede →</a>
+      </div>
+
+      <div id="products-grid" class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {
+          initialProducts.map((product) => (
+            <a
+              href={`/producto/?slug=${product.slug}`}
+              class="card group flex flex-col"
+            >
+              <div class="relative aspect-video overflow-hidden bg-ink-900">
+                <img
+                  src={product.image || "/og-image.png"}
+                  alt={product.title}
+                  class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  loading="lazy"
+                />
+                <span class="badge absolute left-4 top-4 bg-black/60 text-white backdrop-blur">{product.category}</span>
+                {product.featured && (
+                  <span class="badge brand-gradient absolute right-4 top-4 text-white">Destacado</span>
+                )}
+              </div>
+              <div class="flex flex-1 flex-col p-6">
+                <h3 class="text-xl font-extrabold text-slate-900">{product.title}</h3>
+                <p class="mt-1 line-clamp-1 text-sm text-slate-500">{product.tagline}</p>
+                <p class="mt-4 line-clamp-2 text-sm text-slate-600">{product.description}</p>
+                <div class="mt-auto flex items-center justify-between pt-6">
+                  <span class="text-lg font-black text-slate-900">{product.priceLabel}</span>
+                  <span class="text-sm font-semibold text-violet-600">Ver detalles →</span>
+                </div>
+              </div>
+            </a>
+          ))
+        }
+      </div>
+
+      <p id="products-empty" class="mt-10 hidden text-center text-slate-500">No hay productos publicados todavía.</p>
+    </div>
+  </section>
+
+  <script define:vars={{ fallbackCount: initialProducts.length }}>
+    const esc = (value) =>
+      String(value ?? "").replace(/[&<>"']/g, (char) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]),
+      );
+
+    function cardMarkup(product) {
+      const image = product.image || "/og-image.png";
+      return `
+        <a href="/producto/?slug=${esc(product.slug)}" class="card group flex flex-col">
+          <div class="relative aspect-video overflow-hidden bg-ink-900">
+            <img src="${esc(image)}" alt="${esc(product.title)}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+            <span class="badge absolute left-4 top-4 bg-black/60 text-white backdrop-blur">${esc(product.category || "Producto")}</span>
+            ${product.featured ? '<span class="badge brand-gradient absolute right-4 top-4 text-white">Destacado</span>' : ""}
+          </div>
+          <div class="flex flex-1 flex-col p-6">
+            <h3 class="text-xl font-extrabold text-slate-900">${esc(product.title)}</h3>
+            <p class="mt-1 line-clamp-1 text-sm text-slate-500">${esc(product.tagline || "")}</p>
+            <p class="mt-4 line-clamp-2 text-sm text-slate-600">${esc(product.description || "")}</p>
+            <div class="mt-auto flex items-center justify-between pt-6">
+              <span class="text-lg font-black text-slate-900">${esc(product.priceLabel || "")}</span>
+              <span class="text-sm font-semibold text-violet-600">Ver detalles →</span>
+            </div>
+          </div>
+        </a>`;
+    }
+
+    fetch("/api/products")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!data || !Array.isArray(data.products)) return;
+        const grid = document.getElementById("products-grid");
+        const empty = document.getElementById("products-empty");
+        const count = document.getElementById("product-count");
+        if (!grid || !empty || !count) return;
+        if (data.products.length === 0) {
+          grid.innerHTML = "";
+          empty.classList.remove("hidden");
+        } else {
+          grid.innerHTML = data.products.map(cardMarkup).join("");
+        }
+        count.textContent = `${data.products.length} productos disponibles`;
+      })
+      .catch(() => {});
+  </script>
+</BaseLayout>

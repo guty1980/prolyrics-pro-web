@@ -1,0 +1,167 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Producto | CREATIVOX"
+  description="Detalles, funcionalidades y acceso al producto digital en CREATIVOX."
+>
+  <div id="product-root" class="py-16">
+    <div class="container">
+      <p class="text-slate-500">Cargando producto…</p>
+    </div>
+  </div>
+
+  <script>
+    type Product = {
+      slug: string;
+      title: string;
+      tagline?: string;
+      description?: string;
+      category?: string;
+      priceLabel?: string;
+      image?: string;
+      logo?: string;
+      trailer?: string;
+      gallery?: string[];
+      saleDetails?: string[];
+      functionalities?: string[];
+      tags?: string[];
+      requiresAccount?: boolean;
+      publicDownload?: boolean;
+      fileKey?: string;
+      fileUrl?: string;
+      featured?: boolean;
+    };
+
+    const esc = (value: unknown) =>
+      String(value ?? "").replace(/[&<>"']/g, (char) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char] as string),
+      );
+
+    const root = document.getElementById("product-root");
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("slug") || "";
+
+    const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="mt-0.5 h-5 w-5 flex-none text-violet-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>`;
+
+    function list(items: string[] | undefined, icon: string) {
+      if (!items || !items.length) return "";
+      return `<ul class="mt-6 space-y-4">${items
+        .map((item) => `<li class="flex items-start gap-3 text-slate-700">${icon}<span>${esc(item)}</span></li>`)
+        .join("")}</ul>`;
+    }
+
+    function render(product: Product, hasAccess: boolean) {
+      if (!root) return;
+      document.title = `${product.title} | CREATIVOX`;
+
+      const image = product.image || "/og-image.png";
+      const logo = product.logo || image;
+      const price = product.priceLabel || "Gratis";
+      const needsLogin = Boolean(product.requiresAccount) && !product.publicDownload;
+      const downloadUrl = product.fileKey
+        ? `/api/product/file?slug=${encodeURIComponent(product.slug)}&key=${encodeURIComponent(product.fileKey)}`
+        : product.fileUrl || "";
+
+      let action = "";
+      if (needsLogin && !hasAccess) {
+        action = `<a href="/cuenta?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}" class="brand-gradient inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 font-semibold text-white shadow-lg">Iniciar sesión para acceder</a>
+          <p class="mt-3 text-sm text-slate-500">¿No tienes cuenta? <a href="/cuenta?mode=register" class="font-semibold text-violet-600 hover:underline">Regístrate gratis</a></p>`;
+      } else if (downloadUrl && downloadUrl !== "#") {
+        action = `<a href="${esc(downloadUrl)}" target="_blank" rel="noopener noreferrer" class="brand-gradient inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 font-semibold text-white shadow-lg">Acceder al producto →</a>`;
+      } else {
+        action = `<a href="/contacto" class="brand-gradient inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 font-semibold text-white shadow-lg">Solicitar acceso</a>`;
+      }
+
+      root.innerHTML = `
+        <div class="container">
+          <a href="/productos" class="text-sm font-semibold text-violet-600 hover:text-violet-800">← Volver a productos</a>
+
+          <div class="mt-8 grid gap-10 lg:grid-cols-2 lg:items-start">
+            <div>
+              <div class="relative aspect-video overflow-hidden rounded-2xl bg-ink-900 shadow-xl">
+                <img src="${esc(image)}" alt="${esc(product.title)}" class="h-full w-full object-cover" />
+              </div>
+              ${product.trailer
+                ? `<video src="${esc(product.trailer)}" controls preload="metadata" class="mt-5 w-full rounded-2xl bg-black"></video>`
+                : ""}
+              ${product.gallery && product.gallery.length
+                ? `<div class="mt-5 grid grid-cols-3 gap-3">${product.gallery
+                    .map((src) => `<img src="${esc(src)}" alt="" class="aspect-video w-full rounded-xl object-cover" loading="lazy" />`)
+                    .join("")}</div>`
+                : ""}
+            </div>
+
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="badge bg-violet-50 text-violet-700">${esc(product.category || "Producto")}</span>
+                ${product.featured ? '<span class="badge brand-gradient text-white">Destacado</span>' : ""}
+                ${needsLogin ? '<span class="badge bg-slate-100 text-slate-600">Acceso con cuenta</span>' : ""}
+              </div>
+
+              <div class="mt-6 flex items-center gap-4">
+                <img src="${esc(logo)}" alt="" class="h-14 w-14 rounded-xl object-cover shadow-sm" />
+                <div>
+                  <h1 class="text-3xl font-black text-slate-900 md:text-4xl">${esc(product.title)}</h1>
+                  <p class="mt-1 text-lg text-slate-500">${esc(product.tagline || "")}</p>
+                </div>
+              </div>
+
+              <p class="mt-5 text-4xl font-black text-slate-900">${esc(price)}</p>
+              <p class="mt-6 leading-relaxed text-slate-600">${esc(product.description || "")}</p>
+
+              <div class="mt-8">${action}</div>
+
+              <div class="mt-10 border-t border-slate-200 pt-8">
+                <h2 class="text-xl font-extrabold text-slate-900">Detalles de venta</h2>
+                ${list(product.saleDetails, checkIcon)}
+              </div>
+
+              <div class="mt-10 border-t border-slate-200 pt-8">
+                <h2 class="text-xl font-extrabold text-slate-900">Funcionalidades</h2>
+                ${list(product.functionalities, checkIcon)}
+              </div>
+
+              ${product.tags && product.tags.length
+                ? `<div class="mt-10 flex flex-wrap gap-2">${product.tags
+                    .map((tag) => `<span class="badge bg-slate-100 text-slate-600">#${esc(tag)}</span>`)
+                    .join("")}</div>`
+                : ""}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    async function load() {
+      if (!root) return;
+      try {
+        const productsResponse = await fetch("/api/products");
+        const productsData = await productsResponse.json();
+        const product = (productsData.products || []).find((item) => item.slug === slug);
+
+        if (!product) {
+          root.innerHTML = `<div class="container"><h1 class="text-3xl font-black">Producto no encontrado</h1><a href="/productos" class="mt-6 inline-block font-semibold text-violet-600">Ver todos los productos →</a></div>`;
+          return;
+        }
+
+        let hasAccess = false;
+        try {
+          const sessionResponse = await fetch("/api/account/session", { credentials: "same-origin" });
+          if (sessionResponse.ok) {
+            const sessionData = await sessionResponse.json();
+            hasAccess = Boolean(sessionData.ok && (sessionData.products || []).some((item) => item.slug === slug));
+          }
+        } catch {
+          hasAccess = false;
+        }
+
+        render(product, hasAccess);
+      } catch {
+        root.innerHTML = `<div class="container"><p class="text-slate-500">No se pudo cargar el producto. Intenta recargar la página.</p></div>`;
+      }
+    }
+
+    load();
+  </script>
+</BaseLayout>
