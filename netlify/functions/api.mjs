@@ -427,6 +427,11 @@ export default async function handler(request) {
     const product = (await getProducts()).find((item) => item.slug === slug);
     if (!product) return error("Producto no encontrado.", 404);
 
+    // Solo se puede servir el archivo configurado para este producto.
+    if (!product.fileKey || key !== product.fileKey) {
+      return error("Este archivo no pertenece al producto.", 403);
+    }
+
     if (product.requiresAccount && !product.publicDownload) {
       const secret = getSessionSecret();
       const user = secret ? await getUserFromRequest(request, secret) : null;
