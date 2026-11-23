@@ -63,7 +63,7 @@ import "../assets/styles/global.css";
         </nav>
 
         <!-- EDITOR VISUAL -->
-        <section class="tab-panel is-active" data-panel="visual">
+        <section class="tab-panel panel-scroll-layout is-active" data-panel="visual">
           <div class="panel-heading">
             <div>
               <h2>Editor visual</h2>
@@ -76,12 +76,12 @@ import "../assets/styles/global.css";
           </div>
 
           <div class="editor-layout">
-            <div class="frame-wrap">
+            <div class="frame-wrap scroll-box">
               <iframe id="site-frame" src="/?edit=1" title="Vista editable de CREATIVOX"></iframe>
             </div>
 
             <aside class="editor-side">
-              <div class="side-card">
+              <div class="side-card scroll-box">
                 <h3>Elemento seleccionado</h3>
                 <p id="selection-hint" class="muted">Selecciona algo en la vista previa.</p>
                 <div id="selection-form" hidden>
@@ -128,7 +128,7 @@ import "../assets/styles/global.css";
                 </div>
               </div>
 
-              <div class="side-card">
+              <div class="side-card scroll-box">
                 <h3>Añadir sección HTML</h3>
                 <p class="muted">Inserta un bloque nuevo al final, antes o después de un elemento.</p>
                 <label class="field">
@@ -150,7 +150,7 @@ import "../assets/styles/global.css";
                 <button id="save-section" class="btn btn-primary btn-block" type="button">Añadir sección</button>
               </div>
 
-              <div class="side-card">
+              <div class="side-card scroll-box">
                 <h3>Cambios guardados</h3>
                 <div id="changes-list" class="changes-list"><p class="muted">Cargando…</p></div>
               </div>
@@ -159,7 +159,7 @@ import "../assets/styles/global.css";
         </section>
 
         <!-- PORTADA / CARRUSEL -->
-        <section class="tab-panel" data-panel="portada">
+        <section class="tab-panel panel-scroll-layout" data-panel="portada">
           <div class="panel-heading">
             <div>
               <h2>Portada y carrusel principal</h2>
@@ -172,7 +172,7 @@ import "../assets/styles/global.css";
           </div>
 
           <div class="split-layout">
-            <form id="hero-form" class="form-card hero-form">
+            <form id="hero-form" class="form-card hero-form scroll-box">
               <h3>Diapositiva</h3>
               <input id="hero-id" type="hidden" />
               <div class="form-row">
@@ -252,7 +252,7 @@ import "../assets/styles/global.css";
               </div>
             </form>
 
-            <div class="list-card">
+            <div class="list-card scroll-box">
               <h3>Diapositivas guardadas</h3>
               <div id="hero-list" class="resources-list"><p class="muted">Cargando…</p></div>
             </div>
@@ -260,7 +260,7 @@ import "../assets/styles/global.css";
         </section>
 
         <!-- PRODUCTOS -->
-        <section class="tab-panel" data-panel="productos">
+        <section class="tab-panel panel-scroll-layout" data-panel="productos">
           <div class="panel-heading">
             <div>
               <h2>Productos digitales</h2>
@@ -270,7 +270,7 @@ import "../assets/styles/global.css";
           </div>
 
           <div class="split-layout">
-            <form id="product-form" class="form-card">
+            <form id="product-form" class="form-card scroll-box">
               <h3>Datos del producto</h3>
               <input id="product-original-slug" type="hidden" />
               <label class="field"><span>Título</span><input id="product-title" required /></label>
@@ -316,7 +316,7 @@ import "../assets/styles/global.css";
               <button class="btn btn-primary btn-block" type="submit">Guardar producto</button>
             </form>
 
-            <div class="list-card">
+            <div class="list-card scroll-box">
               <h3>Productos publicados</h3>
               <div id="products-list" class="resources-list"><p class="muted">Cargando…</p></div>
             </div>
@@ -324,7 +324,7 @@ import "../assets/styles/global.css";
         </section>
 
         <!-- USUARIOS -->
-        <section class="tab-panel" data-panel="usuarios">
+        <section class="tab-panel panel-scroll-layout" data-panel="usuarios">
           <div class="panel-heading">
             <div>
               <h2>Usuarios y accesos</h2>
@@ -334,7 +334,7 @@ import "../assets/styles/global.css";
           </div>
 
           <div class="split-layout">
-            <form id="user-form" class="form-card">
+            <form id="user-form" class="form-card scroll-box">
               <h3>Datos del usuario</h3>
               <input id="user-id" type="hidden" />
               <label class="field"><span>Email</span><input id="user-email" type="email" required /></label>
@@ -355,7 +355,7 @@ import "../assets/styles/global.css";
               <button class="btn btn-primary btn-block" type="submit">Guardar usuario</button>
             </form>
 
-            <div class="list-card">
+            <div class="list-card scroll-box">
               <h3>Usuarios registrados</h3>
               <div id="users-list" class="resources-list"><p class="muted">Cargando…</p></div>
             </div>
@@ -363,7 +363,7 @@ import "../assets/styles/global.css";
         </section>
 
         <!-- MARCA -->
-        <section class="tab-panel" data-panel="marca">
+        <section class="tab-panel panel-scroll-layout" data-panel="marca">
           <div class="panel-heading">
             <div>
               <h2>Marca CREATIVOX</h2>
@@ -371,7 +371,7 @@ import "../assets/styles/global.css";
             </div>
           </div>
 
-          <form id="brand-form" class="form-card brand-form">
+          <form id="brand-form" class="form-card brand-form scroll-box">
             <label class="field"><span>Nombre de la empresa</span><input id="brand-site-name" value="CREATIVOX" /></label>
             <label class="field"><span>Frase / tagline</span><input id="brand-tagline" value="Productos digitales" /></label>
             <label class="field">
@@ -396,7 +396,7 @@ import "../assets/styles/global.css";
         </section>
 
         <!-- RECURSOS -->
-        <section class="tab-panel" data-panel="recursos">
+        <section class="tab-panel panel-scroll-layout" data-panel="recursos">
           <div class="panel-heading">
             <div>
               <h2>Recursos de PROLYRICS</h2>
@@ -406,7 +406,7 @@ import "../assets/styles/global.css";
           </div>
 
           <div class="split-layout">
-            <form id="resource-form" class="form-card">
+            <form id="resource-form" class="form-card scroll-box">
               <h3>Datos del recurso</h3>
               <input id="resource-original-slug" type="hidden" />
               <label class="field"><span>Título</span><input id="resource-title" required /></label>
@@ -430,7 +430,7 @@ import "../assets/styles/global.css";
               <button class="btn btn-primary btn-block" type="submit">Guardar recurso</button>
             </form>
 
-            <div class="list-card">
+            <div class="list-card scroll-box">
               <h3>Recursos publicados</h3>
               <div id="resources-list" class="resources-list"><p class="muted">Cargando…</p></div>
             </div>
@@ -482,7 +482,7 @@ import "../assets/styles/global.css";
         </section>
 
         <!-- AJUSTES -->
-        <section class="tab-panel" data-panel="ajustes">
+        <section class="tab-panel panel-scroll-layout" data-panel="ajustes">
           <div class="panel-heading">
             <div>
               <h2>Ajustes</h2>
@@ -491,14 +491,14 @@ import "../assets/styles/global.css";
           </div>
 
           <div class="split-layout">
-            <form id="password-form" class="form-card">
+            <form id="password-form" class="form-card scroll-box">
               <h3>Cambiar clave de administrador</h3>
               <label class="field"><span>Clave actual</span><input id="current-password" type="password" required /></label>
               <label class="field"><span>Clave nueva</span><input id="new-password" type="password" required minlength="6" /></label>
               <button class="btn btn-primary btn-block" type="submit">Actualizar clave</button>
             </form>
 
-            <div class="form-card">
+            <div class="form-card scroll-box">
               <h3>Restablecer contenido</h3>
               <p class="muted">Elimina todas las ediciones visuales y secciones personalizadas. Los productos, usuarios, recursos y medios no se borran.</p>
               <label class="field">

@@ -313,10 +313,44 @@ a { color: inherit; }
 .pl-inline-panel input, .pl-inline-panel textarea { width: 100%; margin-top: 3px; padding: 8px; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; background: rgba(255,255,255,0.06); color: #fff; }
 .pl-inline-panel button { margin-top: 10px; padding: 8px 12px; border: 0; border-radius: 8px; background: #7c3aed; color: #fff; font-weight: 700; cursor: pointer; }
 
+/* Scroll independiente dentro de cada cuadro del panel */
+.panel-scroll-layout.is-active {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-scroll-layout.is-active > .panel-heading { flex: 0 0 auto; }
+.panel-scroll-layout.is-active > .split-layout,
+.panel-scroll-layout.is-active > .editor-layout,
+.panel-scroll-layout.is-active > .brand-form {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.panel-scroll-layout.is-active > .split-layout { align-items: stretch; }
+.panel-scroll-layout.is-active > .editor-layout > .frame-wrap,
+.panel-scroll-layout.is-active > .editor-layout > .editor-side { min-height: 0; }
+.panel-scroll-layout.is-active > .editor-layout > .editor-side { grid-template-rows: repeat(3, minmax(0, 1fr)); }
+
+.scroll-box {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.55) rgba(255, 255, 255, 0.04);
+}
+.scroll-box::-webkit-scrollbar { width: 9px; }
+.scroll-box::-webkit-scrollbar-track { border-radius: 999px; background: rgba(255, 255, 255, 0.04); }
+.scroll-box::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(139, 92, 246, 0.55); }
+.scroll-box::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.8); }
+.scroll-box .resources-list,
+.scroll-box .changes-list { max-height: none; overflow: visible; }
+
 @media (max-width: 1100px) {
   .editor-layout, .split-layout { grid-template-columns: 1fr; }
   .frame-wrap iframe { height: 560px; }
   .editor-side { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .panel-scroll-layout.is-active > .editor-layout > .editor-side { grid-template-rows: auto; }
 }
 @media (max-width: 640px) {
   .topbar { padding: 12px 16px; }
