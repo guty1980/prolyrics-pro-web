@@ -15,6 +15,11 @@
   let activeMediaFolder = "__all__";
   let mediaPickTarget = null;
   const MAX_FILE_BYTES = Math.floor(4.5 * 1024 * 1024 * 1024);
+  const DOWNLOAD_SECTIONS = [
+    { id: "fondos", folder: "Fondos de pantalla" },
+    { id: "videos", folder: "Videos para fondos" },
+    { id: "apps", folder: "APK y apps" },
+  ];
 
   async function api(url, options = {}) {
     const response = await fetch(url, options);
@@ -81,6 +86,7 @@
     if (name === "marca") loadBranding();
     if (name === "recursos") loadResources();
     if (name === "medios") loadMedia();
+    if (name === "descargas") loadMedia();
   }
 
   function framePath() {
@@ -1084,8 +1090,7 @@
       </div>`;
   }
 
-  function bindMediaCards() {
-    const root = $("media-sections");
+  function bindMediaCards(root = $("media-sections")) {
     if (!root) return;
     root.querySelectorAll("[data-copy-media]").forEach((button) => {
       button.addEventListener("click", () => copyMediaUrl(button.dataset.copyMedia));
@@ -1242,6 +1247,58 @@
     bindMediaCards();
   }
 
+  function downloadUrl(item) {
+    const url = new URL(item.url, window.location.origin);
+    url.searchParams.set("download", "1");
+    return url.href;
+  }
+
+  function downloadCardMarkup(item) {
+    return `
+      <div class="media-card download-card" data-media-key="${esc(item.key)}">
+        <div class="media-preview">${mediaPreview(item)}</div>
+        <div class="media-body">
+          <div class="media-name" title="${esc(item.name)}">${esc(item.name)}</div>
+          <div class="media-meta">${formatSize(item.size)} · ${esc((item.type || "archivo").split("/").pop())}</div>
+          <div class="media-actions">
+            <button class="btn btn-ghost btn-small" data-copy-download="${esc(item.key)}" type="button">Copiar URL</button>
+            <a class="btn btn-primary btn-small" href="${esc(downloadUrl(item))}" target="_blank" rel="noopener">Descargar</a>
+            <button class="btn btn-danger btn-small" data-delete-media="${esc(item.key)}" type="button">✕</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderDownloadSections() {
+    DOWNLOAD_SECTIONS.forEach((section) => {
+      const grid = $(`download-grid-${section.id}`);
+      if (!grid) return;
+      const items = mediaItems.filter((item) => String(item.folder || "") === section.folder);
+      grid.innerHTML = items.length
+        ? items.map(downloadCardMarkup).join("")
+        : '<p class="muted">Todavía no hay archivos en esta sección.</p>';
+      bindMediaCards(grid);
+      grid.querySelectorAll("[data-copy-download]").forEach((button) => {
+        button.addEventListener("click", () => copyDownloadUrl(button.dataset.copyDownload));
+      });
+    });
+  }
+
+  async function ensureDownloadFolders() {
+    for (const section of DOWNLOAD_SECTIONS) {
+      try {
+        const data = await api("/api/admin/media/folders", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name: section.folder }),
+        });
+        if (Array.isArray(data.folders)) mediaFolders = data.folders;
+      } catch (error) {
+        console.warn("No se pudo preparar la sección de descargas:", error);
+      }
+    }
+  }
+
   async function loadMedia() {
     try {
       const data = await api("/api/admin/media");
@@ -1272,6 +1329,7 @@
       mediaFolders = Array.from(folders).sort((a, b) => a.localeCompare(b, "es"));
       renderMediaFolderSelect();
       renderMediaGallery();
+      renderDownloadSections();
     } catch (error) {
       toast(error.message, true);
     }
@@ -1379,6 +1437,7 @@
   function refreshMediaSoon() {
     renderMediaFolderSelect();
     renderMediaGallery();
+    renderDownloadSections();
     window.setTimeout(loadMedia, 3000);
   }
 
@@ -1391,6 +1450,18 @@
       toast("URL copiada al portapapeles.");
     } catch {
       window.prompt("Copia esta URL:", url);
+    }
+  }
+
+  async function copyDownloadUrl(key) {
+    const item = mediaByKey(key);
+    if (!item) return;
+    const url = downloadUrl(item);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast("URL de descarga copiada al portapapeles.");
+    } catch {
+      window.prompt("Copia esta URL de descarga:", url);
     }
   }
 
@@ -1580,6 +1651,32 @@
     dropzone.addEventListener("drop", (event) => uploadFiles(event.dataTransfer.files));
     $("refresh-media").addEventListener("click", loadMedia);
 
+    $("refresh-downloads")?.addEventListener("click", loadMedia);
+    DOWNLOAD_SECTIONS.forEach((section) => {
+      const input = $(`download-input-${section.id}`);
+      const zone = $(`download-drop-${section.id}`);
+      $(`download-upload-${section.id}`)?.addEventListener("click", () => input?.click());
+      input?.addEventListener("change", (event) => {
+        uploadFiles(event.target.files, section.folder);
+        event.target.value = "";
+      });
+      if (!zone) return;
+      zone.addEventListener("click", () => input?.click());
+      ["dragenter", "dragover"].forEach((type) => {
+        zone.addEventListener(type, (event) => {
+          event.preventDefault();
+          zone.classList.add("is-dragging");
+        });
+      });
+      ["dragleave", "drop"].forEach((type) => {
+        zone.addEventListener(type, (event) => {
+          event.preventDefault();
+          zone.classList.remove("is-dragging");
+        });
+      });
+      zone.addEventListener("drop", (event) => uploadFiles(event.dataTransfer.files, section.folder));
+    });
+
     $("password-form").addEventListener("submit", changePassword);
     $("reset-content").addEventListener("click", resetContent);
   }
@@ -1588,6 +1685,7 @@
     bindEvents();
     try {
       await api("/api/admin/session");
+      await ensureDownloadFolders();
       showDashboard();
     } catch {
       $("login-view").hidden = false;

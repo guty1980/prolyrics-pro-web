@@ -188,6 +188,10 @@ function contentTypeFor(name, fallback) {
     mov: "video/quicktime",
     m4v: "video/x-m4v",
     pdf: "application/pdf",
+    apk: "application/vnd.android.package-archive",
+    apks: "application/vnd.android.package-archive",
+    xapk: "application/vnd.android.package-archive",
+    aab: "application/vnd.android.package-archive",
     zip: "application/zip",
     json: "application/json",
     txt: "text/plain; charset=utf-8",
@@ -213,7 +217,7 @@ function notFoundMedia() {
   return json({ ok: false, error: "Archivo no encontrado." }, 404);
 }
 
-async function streamMedia(key) {
+async function streamMedia(key, forceDownload = false) {
   const entry = await mediaStore().getWithMetadata(key, {
     type: "stream",
     consistency: "strong",
@@ -223,12 +227,13 @@ async function streamMedia(key) {
   const metadata = entry.metadata || {};
   const name = metadata.name || key.split("/").pop() || "archivo";
   const type = metadata.type || contentTypeFor(name);
+  const disposition = forceDownload ? "attachment" : "inline";
 
   return new Response(entry.data, {
     status: 200,
     headers: {
       "content-type": type,
-      "content-disposition": `inline; filename="${safeFileName(name)}"; filename*=UTF-8''${encodeURIComponent(name)}`,
+      "content-disposition": `${disposition}; filename="${safeFileName(name)}"; filename*=UTF-8''${encodeURIComponent(name)}`,
       "cache-control": "public, max-age=31536000, immutable",
       "x-content-type-options": "nosniff",
     },
@@ -530,7 +535,7 @@ export default async function handler(request) {
       }
     }
 
-    return streamMedia(key);
+    return streamMedia(key, url.searchParams.get("download") === "1");
   }
 
   // --- Cuentas de clientes -------------------------------------------------
@@ -899,7 +904,7 @@ export default async function handler(request) {
   if (route === "media" && method === "GET") {
     const key = String(url.searchParams.get("key") || "");
     if (!key) return error("Falta la clave del archivo.", 400);
-    return streamMedia(key);
+    return streamMedia(key, url.searchParams.get("download") === "1");
   }
 
   return error(`Ruta no encontrada: ${route || "/"}`, 404);

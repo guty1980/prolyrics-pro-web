@@ -253,6 +253,17 @@ a { color: inherit; }
 .media-move { max-width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: rgba(10, 10, 20, 0.85); color: var(--text); font-size: 11px; }
 .media-empty { grid-column: 1 / -1; padding: 18px; border: 1px dashed var(--line); border-radius: 10px; text-align: center; }
 
+/* Descargas */
+.download-layout { display: grid; gap: 18px; }
+.download-section { padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+.download-section .panel-heading.compact { margin: 0 0 14px; }
+.download-dropzone { display: grid; place-items: center; gap: 4px; margin-bottom: 14px; padding: 22px 16px; border: 2px dashed rgba(139, 92, 246, 0.45); border-radius: 12px; background: rgba(139, 92, 246, 0.06); text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.download-dropzone:hover, .download-dropzone.is-dragging { border-color: var(--brand); background: rgba(139, 92, 246, 0.14); }
+.download-dropzone strong { font-size: 13px; }
+.download-dropzone span { color: var(--muted); font-size: 11px; }
+.download-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+.download-card .media-preview { height: 110px; }
+
 /* Ajustes */
 .form-card hr { margin: 22px 0; border: 0; border-top: 1px solid var(--line); }
 .form-card code { color: #c4b5fd; }

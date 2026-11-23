@@ -59,6 +59,7 @@ import "../assets/styles/global.css";
           <button class="tab" data-tab="marca" type="button" role="tab">Marca</button>
           <button class="tab" data-tab="recursos" type="button" role="tab">Recursos</button>
           <button class="tab" data-tab="medios" type="button" role="tab">Medios</button>
+          <button class="tab" data-tab="descargas" type="button" role="tab">Descargas</button>
           <button class="tab" data-tab="ajustes" type="button" role="tab">Ajustes</button>
         </nav>
 
@@ -479,6 +480,67 @@ import "../assets/styles/global.css";
           </div>
           <div id="folder-filters" class="folder-filters"></div>
           <div id="media-sections" class="media-sections"><p class="muted">Cargando…</p></div>
+        </section>
+
+        <!-- DESCARGAS -->
+        <section class="tab-panel" data-panel="descargas">
+          <div class="panel-heading">
+            <div>
+              <h2>Descargas</h2>
+              <p>Subí fondos de pantalla, videos de fondo y tus apps APK. Cada archivo queda en su sección y tiene una URL directa para copiar, compartir o descargar.</p>
+            </div>
+            <button id="refresh-downloads" class="btn btn-ghost" type="button">Actualizar</button>
+          </div>
+
+          <div class="download-layout">
+            <section class="download-section" data-download-section="fondos">
+              <div class="panel-heading compact">
+                <div>
+                  <h3>Fondos de pantalla</h3>
+                  <p>Imágenes en horizontal o vertical para fondo de pantalla.</p>
+                </div>
+                <button id="download-upload-fondos" class="btn btn-ghost btn-small" type="button">Subir imágenes</button>
+              </div>
+              <input id="download-input-fondos" type="file" accept="image/*" multiple hidden />
+              <div id="download-drop-fondos" class="download-dropzone">
+                <strong>Arrastrá imágenes aquí</strong>
+                <span>o usá el botón “Subir imágenes”</span>
+              </div>
+              <div id="download-grid-fondos" class="download-grid"><p class="muted">Cargando…</p></div>
+            </section>
+
+            <section class="download-section" data-download-section="videos">
+              <div class="panel-heading compact">
+                <div>
+                  <h3>Videos para fondo de pantalla</h3>
+                  <p>Clips en MP4, WebM o MOV para usar como fondo animado.</p>
+                </div>
+                <button id="download-upload-videos" class="btn btn-ghost btn-small" type="button">Subir videos</button>
+              </div>
+              <input id="download-input-videos" type="file" accept="video/*" multiple hidden />
+              <div id="download-drop-videos" class="download-dropzone">
+                <strong>Arrastrá videos aquí</strong>
+                <span>o usá el botón “Subir videos”</span>
+              </div>
+              <div id="download-grid-videos" class="download-grid"><p class="muted">Cargando…</p></div>
+            </section>
+
+            <section class="download-section" data-download-section="apps">
+              <div class="panel-heading compact">
+                <div>
+                  <h3>APK y apps</h3>
+                  <p>Instaladores APK y software para descarga directa.</p>
+                </div>
+                <button id="download-upload-apps" class="btn btn-ghost btn-small" type="button">Subir APK / apps</button>
+              </div>
+              <input id="download-input-apps" type="file" accept=".apk,.apks,.xapk,application/vnd.android.package-archive,application/octet-stream" multiple hidden />
+              <div id="download-drop-apps" class="download-dropzone">
+                <strong>Arrastrá APK o archivos de instalación aquí</strong>
+                <span>o usá el botón “Subir APK / apps”</span>
+              </div>
+              <div id="download-grid-apps" class="download-grid"><p class="muted">Cargando…</p></div>
+            </section>
+          </div>
         </section>
 
         <!-- AJUSTES -->
