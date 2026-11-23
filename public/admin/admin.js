@@ -746,7 +746,7 @@
     });
   }
 
-  async function uploadFile(file, folderOverride) {
+  async function uploadFile(file, folderOverride, allowRetry = true) {
     if (file.size > MAX_FILE_BYTES) {
       toast(`${file.name}: el archivo supera el límite de 4.5 GB.`, true);
       return false;
@@ -802,6 +802,7 @@
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           uploadId,
+          chunkTotal: total,
           name: file.name,
           type: file.type || "",
           folder:
@@ -827,6 +828,11 @@
       return true;
     } catch (error) {
       progress.done();
+      if (allowRetry && /Faltan fragmentos/i.test(error.message)) {
+        // Un intento anterior pudo dejar un ID con fragmentos ya borrados.
+        try { window.localStorage.removeItem(storageKey); } catch {}
+        return uploadFile(file, folderOverride, false);
+      }
       toast(`${file.name}: ${error.message}. La subida se puede retomar.`, true);
       return false;
     }

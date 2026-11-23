@@ -749,19 +749,30 @@ export default async function handler(request) {
     const uploadId = String(body.uploadId || "");
     if (!/^[a-zA-Z0-9_-]{8,100}$/.test(uploadId)) return error("ID de subida no válido.", 400);
 
-    const prefix = `${uploadId}/`;
-    const { blobs } = await chunkStore().list({ prefix });
-    if (blobs.length === 0) return error("No se recibieron fragmentos.", 400);
+    // Leemos cada fragmento por su clave con consistencia fuerte. `list()` puede
+    // tardar en reflejar escrituras recientes y daría un falso "sin fragmentos".
+    const maxChunks = Math.ceil(MAX_FILE_BYTES / (4 * 1024 * 1024)) + 1;
+    const chunkTotal = Number(body.chunkTotal);
+    if (!Number.isInteger(chunkTotal) || chunkTotal < 1 || chunkTotal > maxChunks) {
+      return error("Cantidad de fragmentos no válida.", 400);
+    }
 
+    const chunkKeys = [];
     const parts = [];
-    for (const { key } of blobs.sort((a, b) => a.key.localeCompare(b.key))) {
-      const part = await chunkStore().get(key, { type: "arrayBuffer", consistency: "strong" });
-      if (part) parts.push(Buffer.from(part));
+    for (let index = 0; index < chunkTotal; index += 1) {
+      const chunkKey = `${uploadId}/${String(index).padStart(6, "0")}`;
+      const part = await chunkStore().get(chunkKey, {
+        type: "arrayBuffer",
+        consistency: "strong",
+      });
+      if (!part) return error("Faltan fragmentos para completar la subida. Se puede retomar.", 409);
+      chunkKeys.push(chunkKey);
+      parts.push(Buffer.from(part));
     }
 
     const fileBuffer = Buffer.concat(parts);
     if (fileBuffer.byteLength > MAX_FILE_BYTES) {
-      await Promise.all(blobs.map(({ key }) => chunkStore().delete(key)));
+      await Promise.all(chunkKeys.map((chunkKey) => chunkStore().delete(chunkKey)));
       return error("El archivo supera el límite de 4.5 GB.", 413);
     }
 
@@ -796,7 +807,7 @@ export default async function handler(request) {
       }
     }
 
-    await Promise.all(blobs.map(({ key: chunkKey }) => chunkStore().delete(chunkKey)));
+    await Promise.all(chunkKeys.map((chunkKey) => chunkStore().delete(chunkKey)));
 
     return json({
       ok: true,
