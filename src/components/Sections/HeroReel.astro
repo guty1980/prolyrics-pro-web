@@ -828,7 +828,10 @@ function safeUrl(value) {
     .then((data) => {
       if (!data || !Array.isArray(data.slides)) return;
       const remote = data.slides;
-      if (remote.length !== slides.length || remote.some((slide, i) => slide.id !== slides[i]?.id)) {
+      // La web es estática y el HTML trae las diapositivas semilla. Si el admin
+      // editó una diapositiva existente, los IDs no cambian: hay que comparar
+      // el contenido completo, no solo la cantidad de slides.
+      if (JSON.stringify(remote) !== JSON.stringify(slides)) {
         render(remote);
       }
     })
