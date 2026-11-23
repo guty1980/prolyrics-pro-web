@@ -146,6 +146,8 @@ async function getMediaItems() {
         alt: metadata.alt || "",
         folder: hasMappedFolder ? String(folderMap[key] || "") : metadata.folder || "",
         uploadedAt: metadata.uploadedAt || "",
+        previewFor: metadata.previewFor || "",
+        previewKind: metadata.previewKind || "",
         url: `/api/media?key=${encodeURIComponent(key)}`,
       };
     }),
@@ -414,10 +416,20 @@ export default async function handler(request) {
   // --- Descargas públicas: imágenes y videos, nunca APK/software/apps -------
   if (route === "downloads" && method === "GET") {
     const allowedFolders = new Set(["Fondos de pantalla", "Videos para fondos"]);
-    const downloads = (await getMediaItems())
-      .filter((item) => allowedFolders.has(String(item.folder || "")))
+    const stored = (await getMediaItems()).filter((item) =>
+      allowedFolders.has(String(item.folder || "")),
+    );
+    const previews = new Map(
+      stored
+        .filter((item) => item.previewFor && item.previewKind)
+        .map((item) => [`${item.previewFor}|${item.previewKind}`, item.url]),
+    );
+    const downloads = stored
+      .filter((item) => !item.previewFor)
       .map((item) => ({
         ...item,
+        previewUrl: previews.get(`${item.key}|clip`) || "",
+        posterUrl: previews.get(`${item.key}|poster`) || "",
         downloadUrl: `/api/media?key=${encodeURIComponent(item.key)}&download=1`,
       }));
     return json({
@@ -862,6 +874,10 @@ export default async function handler(request) {
     const key = `${id}/${name}`;
     const uploadedAt = new Date().toISOString();
     const folder = String(body.folder || "").trim().slice(0, 60);
+    const previewFor = String(body.previewFor || "").trim().slice(0, 300);
+    const previewKind = body.previewKind === "poster" || body.previewKind === "clip"
+      ? body.previewKind
+      : "";
 
     await mediaStore().set(key, new Blob([fileBuffer], { type }), {
       metadata: {
@@ -871,6 +887,8 @@ export default async function handler(request) {
         alt: String(body.alt || ""),
         folder,
         uploadedAt,
+        previewFor,
+        previewKind,
       },
     });
 
@@ -899,6 +917,8 @@ export default async function handler(request) {
         alt: String(body.alt || ""),
         folder,
         uploadedAt,
+        previewFor,
+        previewKind,
         url: `/api/media?key=${encodeURIComponent(key)}`,
       },
     });
@@ -909,12 +929,21 @@ export default async function handler(request) {
     const body = await readJson(request);
     const key = String(body.key || "");
     if (!key) return error("Falta la clave del archivo.", 400);
-    await mediaStore().delete(key);
+    // Al borrar un video también van su clip corto y su miniatura asociados.
+    const related = (await getMediaItems())
+      .filter((item) => item.previewFor === key)
+      .map((item) => item.key);
+    const keys = [key, ...related];
+    await Promise.all(keys.map((itemKey) => mediaStore().delete(itemKey)));
     const folderMap = await getMediaFolderMap();
-    if (Object.prototype.hasOwnProperty.call(folderMap, key)) {
-      delete folderMap[key];
-      await saveMediaFolderMap(folderMap);
-    }
+    let changed = false;
+    keys.forEach((itemKey) => {
+      if (Object.prototype.hasOwnProperty.call(folderMap, itemKey)) {
+        delete folderMap[itemKey];
+        changed = true;
+      }
+    });
+    if (changed) await saveMediaFolderMap(folderMap);
     return json({ ok: true });
   }
 

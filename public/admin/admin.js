@@ -9,6 +9,7 @@
   let users = [];
   let mediaItems = [];
   let mediaFolders = [];
+  let mediaPreviewKeys = new Set();
   // Netlify Blobs lista con consistencia eventual; mantenemos los cambios recientes
   // en el cliente para que la galería no “retroceda” al recargar demasiado pronto.
   let pendingMedia = new Map();
@@ -925,7 +926,7 @@
     });
   }
 
-  async function uploadFile(file, folderOverride, allowRetry = true) {
+  async function uploadFile(file, folderOverride, allowRetry = true, extraMeta = {}) {
     if (file.size > MAX_FILE_BYTES) {
       toast(`${file.name}: el archivo supera el límite de 4.5 GB.`, true);
       return false;
@@ -991,6 +992,7 @@
                 ? $("media-folder-select").value.trim()
                 : "",
           alt: $("media-alt") ? $("media-alt").value.trim() : "",
+          ...extraMeta,
         }),
       });
 
@@ -998,33 +1000,129 @@
       progress.done();
       try { window.localStorage.removeItem(storageKey); } catch {}
       const uploaded = result.item;
-      mediaItems.unshift(uploaded);
+      // Los clips/miniaturas son internos: no se muestran en la galería del admin.
+      if (!uploaded.previewFor) {
+        mediaItems.unshift(uploaded);
+        markPendingMedia(uploaded.key, uploaded);
+      }
       if (uploaded.folder && !mediaFolders.includes(uploaded.folder)) {
         mediaFolders.push(uploaded.folder);
         mediaFolders.sort((a, b) => a.localeCompare(b, "es"));
       }
-      markPendingMedia(uploaded.key, uploaded);
-      return true;
+      return uploaded;
     } catch (error) {
       progress.done();
       if (allowRetry && /Faltan fragmentos/i.test(error.message)) {
         // Un intento anterior pudo dejar un ID con fragmentos ya borrados.
         try { window.localStorage.removeItem(storageKey); } catch {}
-        return uploadFile(file, folderOverride, false);
+        return uploadFile(file, folderOverride, false, extraMeta);
       }
       toast(`${file.name}: ${error.message}. La subida se puede retomar.`, true);
       return false;
     }
   }
 
+  // Genera un clip WebM de ~1.6s y un JPEG del primer frame. Así la galería
+  // pública no tiene que descargar el video completo para mostrar la miniatura.
+  async function makeVideoPreviews(file) {
+    if (String(file.type || "").indexOf("video/") !== 0) return null;
+    if (typeof MediaRecorder === "undefined" || !HTMLCanvasElement.prototype.captureStream) return null;
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    let mediaStream = null;
+    try {
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "auto";
+      video.src = url;
+      await new Promise((resolve, reject) => {
+        const timeout = window.setTimeout(() => reject(new Error("Tiempo de espera agotado")), 25000);
+        video.addEventListener("loadeddata", () => { window.clearTimeout(timeout); resolve(); }, { once: true });
+        video.addEventListener("error", () => { window.clearTimeout(timeout); reject(new Error("Video no válido")); }, { once: true });
+      });
+      if (!video.videoWidth || !video.videoHeight) return null;
+
+      const width = Math.min(480, video.videoWidth);
+      const height = Math.max(2, Math.round((video.videoHeight / video.videoWidth) * width / 2) * 2);
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+      const draw = () => ctx.drawImage(video, 0, 0, width, height);
+
+      const start = Math.min(0.4, Math.max(0, (Number(video.duration) || 3) - 2));
+      if (start > 0) {
+        video.currentTime = start;
+        await new Promise((resolve) => {
+          const timeout = window.setTimeout(resolve, 5000);
+          video.addEventListener("seeked", () => { window.clearTimeout(timeout); resolve(); }, { once: true });
+        });
+      }
+      draw();
+      const posterBlob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.72));
+
+      const supported = (type) => {
+        try { return Boolean(MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)); } catch { return false; }
+      };
+      const mime = ["video/webm;codecs=vp8", "video/webm;codecs=vp9", "video/webm"].find(supported) || "";
+      const options = { videoBitsPerSecond: 220000 };
+      if (mime) options.mimeType = mime;
+      mediaStream = canvas.captureStream(12);
+      const recorder = new MediaRecorder(mediaStream, options);
+      const chunks = [];
+      recorder.ondataavailable = (event) => { if (event.data && event.data.size) chunks.push(event.data); };
+      const stopped = new Promise((resolve) => { recorder.onstop = resolve; });
+      await video.play();
+      recorder.start(200);
+      const frameTimer = window.setInterval(draw, 80);
+      await new Promise((resolve) => window.setTimeout(resolve, 1600));
+      recorder.stop();
+      window.clearInterval(frameTimer);
+      await stopped;
+      const clipBlob = new Blob(chunks, { type: recorder.mimeType || "video/webm" });
+      const base = String(file.name || "video").replace(/\.[^.]+$/, "") || "video";
+      return {
+        clip: clipBlob.size ? new File([clipBlob], `preview-${base}.webm`, { type: "video/webm" }) : null,
+        poster: posterBlob ? new File([posterBlob], `poster-${base}.jpg`, { type: "image/jpeg" }) : null,
+      };
+    } catch (error) {
+      console.warn("No se pudo generar la vista previa del video:", error);
+      return null;
+    } finally {
+      try { video.pause(); } catch {}
+      if (mediaStream) mediaStream.getTracks().forEach((track) => track.stop());
+      URL.revokeObjectURL(url);
+    }
+  }
+
   async function uploadFiles(files, folderOverride) {
     const list = Array.from(files || []);
     if (!list.length) return;
+    let uploadedCount = 0;
     for (const file of list) {
-      const ok = await uploadFile(file, folderOverride);
-      if (!ok) return;
+      const uploaded = await uploadFile(file, folderOverride);
+      if (!uploaded) return;
+      uploadedCount += 1;
+      if (String(file.type || "").startsWith("video/")) {
+        const previews = await makeVideoPreviews(file);
+        if (previews) {
+          if (previews.clip) {
+            await uploadFile(previews.clip, folderOverride, true, {
+              previewFor: uploaded.key,
+              previewKind: "clip",
+            });
+          }
+          if (previews.poster) {
+            await uploadFile(previews.poster, folderOverride, true, {
+              previewFor: uploaded.key,
+              previewKind: "poster",
+            });
+          }
+        }
+      }
     }
-    toast(`${list.length} archivo(s) subido(s).`);
+    toast(`${uploadedCount} archivo(s) subido(s).`);
     refreshMediaSoon();
   }
 
@@ -1254,6 +1352,7 @@
   }
 
   function downloadCardMarkup(item) {
+    const needsPreview = String(item.type || "").startsWith("video/") && !mediaPreviewKeys.has(item.key);
     return `
       <div class="media-card download-card" data-media-key="${esc(item.key)}">
         <div class="media-preview">${mediaPreview(item)}</div>
@@ -1261,6 +1360,7 @@
           <div class="media-name" title="${esc(item.name)}">${esc(item.name)}</div>
           <div class="media-meta">${formatSize(item.size)} · ${esc((item.type || "archivo").split("/").pop())}</div>
           <div class="media-actions">
+            ${needsPreview ? `<button class="btn btn-ghost btn-small" data-make-preview="${esc(item.key)}" type="button">Generar miniatura</button>` : ""}
             <button class="btn btn-ghost btn-small" data-copy-download="${esc(item.key)}" type="button">Copiar URL</button>
             <a class="btn btn-primary btn-small" href="${esc(downloadUrl(item))}" target="_blank" rel="noopener">Descargar</a>
             <button class="btn btn-danger btn-small" data-delete-media="${esc(item.key)}" type="button">✕</button>
@@ -1281,7 +1381,39 @@
       grid.querySelectorAll("[data-copy-download]").forEach((button) => {
         button.addEventListener("click", () => copyDownloadUrl(button.dataset.copyDownload));
       });
+      grid.querySelectorAll("[data-make-preview]").forEach((button) => {
+        button.addEventListener("click", () => makePreviewForItem(button.dataset.makePreview));
+      });
     });
+  }
+
+  async function makePreviewForItem(key) {
+    const item = mediaByKey(key);
+    if (!item) return;
+    if (!window.confirm("Este video no tiene miniatura ligera. Se descargará para generar un fragmento corto. ¿Continuar?")) return;
+    try {
+      toast("Generando miniatura del video…");
+      const response = await fetch(item.url);
+      if (!response.ok) throw new Error("No se pudo leer el video.");
+      const blob = await response.blob();
+      const file = new File([blob], item.name, { type: item.type || "video/mp4" });
+      const previews = await makeVideoPreviews(file);
+      if (!previews || (!previews.clip && !previews.poster)) {
+        throw new Error("El navegador no pudo generar la vista previa.");
+      }
+      if (previews.clip) {
+        await uploadFile(previews.clip, item.folder, true, { previewFor: item.key, previewKind: "clip" });
+      }
+      if (previews.poster) {
+        await uploadFile(previews.poster, item.folder, true, { previewFor: item.key, previewKind: "poster" });
+      }
+      mediaPreviewKeys.add(item.key);
+      renderDownloadSections();
+      toast("Miniatura ligera generada.");
+      window.setTimeout(loadMedia, 3000);
+    } catch (error) {
+      toast(error.message, true);
+    }
   }
 
   async function ensureDownloadFolders() {
@@ -1302,7 +1434,9 @@
   async function loadMedia() {
     try {
       const data = await api("/api/admin/media");
-      const items = Array.isArray(data.items) ? [...data.items] : [];
+      const allItems = Array.isArray(data.items) ? [...data.items] : [];
+      mediaPreviewKeys = new Set(allItems.filter((item) => item.previewFor).map((item) => item.previewFor));
+      const items = allItems.filter((item) => !item.previewFor);
       const now = Date.now();
 
       for (const [key, pending] of pendingMedia) {

@@ -119,6 +119,101 @@
   }
 </style>
 
+<style is:global>
+  /* Las tarjetas se generan con JS, por lo que necesitan estilos globales. */
+  .ht-video-thumb {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: radial-gradient(circle at 30% 25%, rgba(139, 92, 246, 0.55), transparent 45%),
+      radial-gradient(circle at 75% 80%, rgba(37, 99, 235, 0.45), transparent 50%),
+      linear-gradient(135deg, #2e1065, #080812 75%);
+  }
+
+  .ht-video-poster,
+  .ht-video-placeholder,
+  .ht-video-clip {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ht-video-poster,
+  .ht-video-placeholder {
+    display: grid;
+    place-content: center;
+    gap: 0.5rem;
+    color: #ddd6fe;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-align: center;
+    text-transform: uppercase;
+    transition: opacity 0.35s ease, transform 0.8s ease;
+  }
+
+  .ht-video-play {
+    display: grid;
+    width: 3rem;
+    height: 3rem;
+    place-items: center;
+    margin: 0 auto;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 1rem;
+    backdrop-filter: blur(8px);
+  }
+
+  .ht-video-clip {
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+
+  .ht-video-hint {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    z-index: 2;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #e2e8f0;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .ht-video-thumb:hover .ht-video-hint {
+    opacity: 1;
+  }
+
+  .ht-video-thumb.is-playing .ht-video-poster,
+  .ht-video-thumb.is-playing .ht-video-placeholder {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+
+  .ht-video-thumb.is-playing .ht-video-clip {
+    opacity: 1;
+    animation: ht-video-move 5s ease-in-out infinite alternate;
+  }
+
+  @keyframes ht-video-move {
+    from {
+      transform: scale(1) translateX(0);
+    }
+    to {
+      transform: scale(1.14) translateX(-2%);
+    }
+  }
+</style>
+
 <script>
   const esc = (value: unknown) =>
     String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -136,6 +231,8 @@
     size: number;
     url: string;
     downloadUrl: string;
+    previewUrl?: string;
+    posterUrl?: string;
   };
 
   const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-home-tab]"));
@@ -158,14 +255,20 @@
   function cardMarkup(item: DownloadItem): string {
     const isVideo = String(item.type || "").startsWith("video/");
     const preview = isVideo
-      ? `<video src="${esc(item.url)}" controls preload="metadata" class="h-full w-full object-cover"></video>`
+      ? `<div class="ht-video-thumb" data-video-thumb>
+          ${item.posterUrl
+            ? `<img class="ht-video-poster" src="${esc(item.posterUrl)}" alt="${esc(item.name)}" loading="lazy" />`
+            : `<div class="ht-video-placeholder"><span class="ht-video-play">▶</span><span>Vista previa</span></div>`}
+          <video class="ht-video-clip" muted loop playsinline preload="none" data-src="${esc(item.previewUrl || item.url)}"></video>
+          <span class="ht-video-hint">Pasa el mouse para ver</span>
+        </div>`
       : `<img src="${esc(item.url)}" alt="${esc(item.name)}" loading="lazy" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />`;
 
     return `
       <article class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-lg">
         <div class="relative aspect-video overflow-hidden bg-ink-900">
           ${preview}
-          <span class="badge absolute left-3 top-3 bg-black/60 text-white backdrop-blur">${isVideo ? "Video" : "Imagen"}</span>
+          <span class="badge absolute left-3 top-3 z-10 bg-black/60 text-white backdrop-blur">${isVideo ? "Video" : "Imagen"}</span>
         </div>
         <div class="p-5">
           <h3 class="truncate text-base font-bold text-slate-900" title="${esc(item.name)}">${esc(item.name)}</h3>
@@ -237,6 +340,47 @@
       filters.forEach((other) => other.classList.toggle("is-active", other === button));
       render();
     });
+  });
+
+  function playThumb(thumb: HTMLElement): void {
+    if (thumb.classList.contains("is-playing")) return;
+    const video = thumb.querySelector<HTMLVideoElement>("video");
+    if (!video) return;
+    if (!video.src) video.src = video.dataset.src || "";
+    thumb.classList.add("is-playing");
+    const attempt = video.play();
+    if (attempt && typeof attempt.catch === "function") attempt.catch(() => {});
+  }
+
+  function stopThumb(thumb: HTMLElement): void {
+    if (!thumb.classList.contains("is-playing")) return;
+    thumb.classList.remove("is-playing");
+    const video = thumb.querySelector<HTMLVideoElement>("video");
+    if (!video) return;
+    video.pause();
+    try { video.currentTime = 0; } catch {}
+  }
+
+  grid?.addEventListener("mouseover", (event) => {
+    const target = event.target as HTMLElement;
+    const thumb = target.closest<HTMLElement>("[data-video-thumb]");
+    if (thumb) playThumb(thumb);
+  });
+
+  grid?.addEventListener("mouseout", (event) => {
+    const target = event.target as HTMLElement;
+    const thumb = target.closest<HTMLElement>("[data-video-thumb]");
+    if (!thumb || thumb.contains(event.relatedTarget as Node)) return;
+    stopThumb(thumb);
+  });
+
+  // En pantallas táctiles no hay hover: un toque reproduce el fragmento.
+  grid?.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    const thumb = target.closest<HTMLElement>("[data-video-thumb]");
+    if (!thumb) return;
+    if (thumb.classList.contains("is-playing")) stopThumb(thumb);
+    else playThumb(thumb);
   });
 
   window.addEventListener("hashchange", () => {
