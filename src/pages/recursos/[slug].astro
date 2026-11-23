@@ -1,0 +1,123 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Button from "../../components/UI/Button.astro";
+import ResourceCard from "../../components/Cards/ResourceCard.astro";
+
+export async function getStaticPaths() {
+  const resources = await getCollection("resources", ({ data }) => !data.draft);
+  return resources.map((resource) => ({
+    params: { slug: resource.id },
+    props: { resource },
+  }));
+}
+
+const { resource } = Astro.props;
+const { Content } = await render(resource);
+
+const related = (await getCollection("resources", ({ data }) => !data.draft))
+  .filter((entry) => entry.id !== resource.id && entry.data.category === resource.data.category)
+  .slice(0, 3);
+---
+
+<BaseLayout
+  title={`${resource.data.title} | PROLYRICS PRO`}
+  description={resource.data.description}
+  type="article"
+>
+  <article>
+    <section class="border-b border-slate-200 bg-slate-50 py-12">
+      <div class="container">
+        <a href="/recursos" class="inline-flex items-center gap-2 text-sm font-semibold text-violet-600 hover:text-violet-800">
+          ← Volver a la biblioteca
+        </a>
+        <div class="mt-8 grid gap-10 lg:grid-cols-2 lg:items-center">
+          <div>
+            <div class="flex flex-wrap gap-2">
+              <span class="badge bg-violet-100 text-violet-700">{resource.data.category}</span>
+              <span class="badge bg-white text-slate-600 ring-1 ring-slate-200">{resource.data.format}</span>
+              {
+                resource.data.premium ? (
+                  <span class="badge bg-gradient-to-r from-amber-400 to-orange-500 text-ink-900">Plan PRO</span>
+                ) : (
+                  <span class="badge bg-emerald-100 text-emerald-700">Gratis</span>
+                )
+              }
+            </div>
+            <h1 class="mt-5 text-4xl font-black md:text-5xl">{resource.data.title}</h1>
+            <p class="mt-5 text-lg leading-relaxed text-slate-600">{resource.data.description}</p>
+
+            {
+              resource.data.tags.length > 0 && (
+                <div class="mt-6 flex flex-wrap gap-2">
+                  {resource.data.tags.map((tag) => (
+                    <span class="rounded-lg bg-white px-3 py-1 text-xs font-medium text-slate-500 ring-1 ring-slate-200">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )
+            }
+
+            <div class="mt-8 flex flex-wrap gap-4">
+              <Button href={resource.data.fileUrl} size="lg" target="_blank" rel="noopener">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M3 14a1 1 0 011 1v2h12v-2a1 1 0 112 0v3a1 1 0 01-1 1H3a1 1 0 01-1-1v-3a1 1 0 011-1zm7-11a1 1 0 011 1v8.586l2.293-2.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V4a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+                Descargar archivo
+              </Button>
+              <Button href="/planes" variant="outline" size="lg">Ver planes</Button>
+            </div>
+          </div>
+
+          <div class="overflow-hidden rounded-2xl border border-slate-200 bg-ink-900 shadow-xl">
+            <img src={resource.data.image} alt={`Vista previa de ${resource.data.title}`} class="aspect-video w-full object-cover" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-14">
+      <div class="container grid gap-12 lg:grid-cols-[1fr_320px]">
+        <div class="prose prose-slate max-w-none">
+          <Content />
+        </div>
+
+        <aside class="h-fit rounded-2xl border border-slate-200 bg-slate-50 p-6">
+          <h2 class="text-lg font-bold">Detalles del recurso</h2>
+          <dl class="mt-5 space-y-4 text-sm">
+            <div class="flex justify-between gap-4 border-b border-slate-200 pb-3">
+              <dt class="text-slate-500">Categoría</dt>
+              <dd class="font-semibold text-slate-900">{resource.data.category}</dd>
+            </div>
+            <div class="flex justify-between gap-4 border-b border-slate-200 pb-3">
+              <dt class="text-slate-500">Formato</dt>
+              <dd class="font-semibold text-slate-900">{resource.data.format}</dd>
+            </div>
+            <div class="flex justify-between gap-4 border-b border-slate-200 pb-3">
+              <dt class="text-slate-500">Acceso</dt>
+              <dd class="font-semibold text-slate-900">{resource.data.premium ? "Plan PRO" : "Gratis"}</dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Resolución</dt>
+              <dd class="font-semibold text-slate-900">1920 × 1080</dd>
+            </div>
+          </dl>
+        </aside>
+      </div>
+    </section>
+
+    {
+      related.length > 0 && (
+        <section class="border-t border-slate-200 bg-slate-50 py-16">
+          <div class="container">
+            <h2 class="mb-8">También te puede gustar</h2>
+            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {related.map((entry) => <ResourceCard resource={entry} />)}
+            </div>
+          </div>
+        </section>
+      )
+    }
+  </article>
+</BaseLayout>

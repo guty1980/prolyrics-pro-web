@@ -1,0 +1,25 @@
+---
+export interface Props {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+}
+
+const { eyebrow, title, subtitle } = Astro.props;
+---
+
+<section class="gradient-brand relative overflow-hidden text-white">
+  <div class="pointer-events-none absolute inset-0 opacity-25" aria-hidden="true">
+    <div class="absolute right-0 top-0 h-80 w-80 rounded-full bg-blue-500 blur-3xl"></div>
+    <div class="absolute left-10 bottom-0 h-72 w-72 rounded-full bg-fuchsia-500 blur-3xl"></div>
+  </div>
+  <div class="container relative py-16 md:py-20">
+    <div class="max-w-3xl">
+      {eyebrow && (
+        <span class="badge border border-white/20 bg-white/10 text-violet-200">{eyebrow}</span>
+      )}
+      <h1 class="mt-5 text-4xl font-black tracking-tight text-white md:text-5xl">{title}</h1>
+      {subtitle && <p class="mt-4 text-lg leading-relaxed text-slate-300">{subtitle}</p>}
+    </div>
+  </div>
+</section>

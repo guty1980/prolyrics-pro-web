@@ -1,0 +1,60 @@
+---
+export interface Props {
+  title: string;
+  description: string;
+  image?: {
+    url: string;
+    alt: string;
+  };
+  type?: "website" | "article";
+  canonicalUrl?: string;
+}
+
+const {
+  title,
+  description,
+  image = {
+    url: "/og-image.png",
+    alt: "PROLYRICS PRO",
+  },
+  type = "website",
+  canonicalUrl,
+} = Astro.props;
+
+const canonicalURL = canonicalUrl || new URL(Astro.url.pathname, Astro.site);
+const siteName = "PROLYRICS PRO";
+const brand = {
+  name: siteName,
+  url: Astro.site?.toString() || "https://prolyrics-pro.netlify.app",
+  email: "hola@prolyricspro.com",
+};
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalURL} />
+
+<meta property="og:type" content={type} />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:url" content={canonicalURL} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={new URL(image.url, Astro.site)} />
+<meta property="og:image:alt" content={image.alt} />
+<meta property="og:locale" content="es_ES" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:url" content={canonicalURL} />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={new URL(image.url, Astro.site)} />
+
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: brand.name,
+  url: brand.url,
+  email: brand.email,
+  description,
+})}>
+</script>

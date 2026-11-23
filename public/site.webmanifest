@@ -1,0 +1,16 @@
+{
+  "name": "PROLYRICS PRO",
+  "short_name": "PROLYRICS",
+  "description": "Proyección para iglesias modernas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0b14",
+  "theme_color": "#2900ff",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

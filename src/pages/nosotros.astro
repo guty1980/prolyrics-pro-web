@@ -1,0 +1,81 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHeader from "../components/Sections/PageHeader.astro";
+import Button from "../components/UI/Button.astro";
+
+const values = [
+  {
+    title: "Belleza con propósito",
+    text: "Cada recurso está diseñado para ayudar a la congregación a enfocarse en la alabanza, no en la pantalla.",
+  },
+  {
+    title: "Accesible para todos",
+    text: "Precios justos y una biblioteca gratuita para que cualquier iglesia pueda empezar.",
+  },
+  {
+    title: "En español, primero",
+    text: "Creamos pensando en la realidad de las iglesias de habla hispana.",
+  },
+  {
+    title: "Siempre mejorando",
+    text: "Añadimos recursos nuevos cada semana escuchando a quienes los usan.",
+  },
+];
+---
+
+<BaseLayout
+  title="Sobre nosotros | PROLYRICS PRO"
+  description="Conoce PROLYRICS PRO: recursos visuales y plantillas para iglesias modernas, creados para ahorrar tiempo a los equipos de alabanza."
+>
+  <PageHeader
+    eyebrow="Sobre nosotros"
+    title="Diseñamos para que tu iglesia se vea como merece"
+    subtitle="Somos un equipo apasionado por la tecnología, el diseño y la alabanza."
+  />
+
+  <section class="py-16">
+    <div class="container grid gap-12 lg:grid-cols-2 lg:items-center">
+      <div class="prose prose-slate max-w-none">
+        <h2>Nació de una necesidad real</h2>
+        <p>
+          Sabemos lo que es preparar un servicio hasta tarde: buscar imágenes, ajustar textos, probar fuentes y repetir lo mismo cada semana. PROLYRICS PRO nació para cambiar eso.
+        </p>
+        <p>
+          Reunimos en un solo lugar plantillas, fondos, letras y recursos visuales listos para proyectar, con un diseño cuidado y precios que tienen sentido para iglesias de cualquier tamaño.
+        </p>
+        <p>
+          Nuestro objetivo es simple: que tu equipo pase menos tiempo frente al computador y más tiempo sirviendo.
+        </p>
+        <div class="not-prose mt-8">
+          <Button href="/recursos">Ver la biblioteca</Button>
+        </div>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        {
+          values.map((value) => (
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+              </span>
+              <h3 class="mt-4 text-lg font-bold">{value.title}</h3>
+              <p class="mt-2 text-sm leading-relaxed text-slate-500">{value.text}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="gradient-brand py-16 text-white">
+    <div class="container text-center">
+      <h2 class="text-white">¿Quieres que tu iglesia sea parte?</h2>
+      <p class="mt-3 text-slate-300">Escríbenos y cuéntanos qué recursos necesitas.</p>
+      <div class="mt-7">
+        <Button href="/contacto" size="lg" variant="secondary">Contactarnos</Button>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

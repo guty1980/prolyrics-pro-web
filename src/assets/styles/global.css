@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+    scroll-padding-top: 6rem;
+  }
+
+  body {
+    @apply font-sans text-slate-700 bg-white antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans font-bold tracking-tight text-slate-900;
+  }
+
+  h1 { @apply text-4xl md:text-6xl; }
+  h2 { @apply text-3xl md:text-5xl; }
+  h3 { @apply text-2xl md:text-3xl; }
+  h4 { @apply text-xl md:text-2xl; }
+  h5 { @apply text-lg md:text-xl; }
+  h6 { @apply text-base md:text-lg; }
+}
+
+@layer components {
+  .container {
+    @apply px-5 mx-auto max-w-7xl;
+  }
+
+  .gradient-brand {
+    background-image: linear-gradient(135deg, #2900ff 0%, #5b21b6 45%, #000000 100%);
+  }
+
+  .text-gradient {
+    background-image: linear-gradient(100deg, #ffffff 0%, #c4b5fd 55%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .card {
+    @apply overflow-hidden transition-all duration-300 bg-white rounded-2xl shadow-sm hover:shadow-xl;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold;
+  }
+}
+
+::selection {
+  @apply bg-violet-600 text-white;
+}

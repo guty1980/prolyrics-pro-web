@@ -1,0 +1,110 @@
+---
+import Button from "../UI/Button.astro";
+
+export interface Props {
+  eyebrow?: string;
+  title?: string;
+  highlight?: string;
+  subtitle?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  secondaryCtaText?: string;
+  secondaryCtaLink?: string;
+}
+
+const {
+  eyebrow = "Recursos para tu iglesia",
+  title = "Tu próximo servicio,",
+  highlight = "listo en minutos.",
+  subtitle = "Plantillas, fondos, letras y recursos visuales listos para proyectar. Diseñados para equipos de alabanza e iglesias modernas.",
+  ctaText = "Explorar recursos",
+  ctaLink = "/recursos",
+  secondaryCtaText = "Ver planes",
+  secondaryCtaLink = "/planes",
+} = Astro.props;
+---
+
+<section class="gradient-brand relative overflow-hidden text-white">
+  <div class="pointer-events-none absolute inset-0 opacity-30" aria-hidden="true">
+    <div class="absolute -left-32 top-10 h-96 w-96 rounded-full bg-violet-500 blur-3xl"></div>
+    <div class="absolute -right-20 bottom-0 h-[28rem] w-[28rem] rounded-full bg-blue-600 blur-3xl"></div>
+    <div class="absolute left-1/2 top-1/3 h-64 w-64 rounded-full bg-fuchsia-500 blur-3xl"></div>
+  </div>
+
+  <div class="container relative grid gap-14 py-20 lg:grid-cols-2 lg:items-center lg:py-28">
+    <div>
+      <span class="badge border border-white/20 bg-white/10 text-violet-200">
+        <span class="mr-2 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+        {eyebrow}
+      </span>
+
+      <h1 class="mt-6 text-4xl font-black leading-[1.08] tracking-tight text-white md:text-6xl">
+        {title}<br />
+        <span class="text-gradient">{highlight}</span>
+      </h1>
+
+      <p class="mt-6 max-w-xl text-lg leading-relaxed text-slate-300">
+        {subtitle}
+      </p>
+
+      <div class="mt-9 flex flex-wrap gap-4">
+        <Button href={ctaLink} size="lg">
+          {ctaText}
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </Button>
+        <Button href={secondaryCtaLink} variant="ghost" size="lg">
+          {secondaryCtaText}
+        </Button>
+      </div>
+
+      <dl class="mt-12 grid max-w-lg grid-cols-3 gap-6 border-t border-white/10 pt-8">
+        <div>
+          <dt class="text-2xl font-black text-white">120+</dt>
+          <dd class="mt-1 text-xs text-slate-400">Recursos listos</dd>
+        </div>
+        <div>
+          <dt class="text-2xl font-black text-white">5</dt>
+          <dd class="mt-1 text-xs text-slate-400">Categorías</dd>
+        </div>
+        <div>
+          <dt class="text-2xl font-black text-white">16:9</dt>
+          <dd class="mt-1 text-xs text-slate-400">Formato proyección</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="relative mx-auto w-full max-w-xl" aria-hidden="true">
+      <div class="absolute -inset-6 rounded-[2.5rem] bg-white/5 blur-2xl"></div>
+      <div class="relative rounded-2xl border border-white/15 bg-ink-900/80 p-3 shadow-2xl backdrop-blur">
+        <div class="flex items-center gap-2 px-2 pb-3 pt-1">
+          <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-amber-400"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
+          <span class="ml-3 text-[11px] font-medium text-slate-500">Presentación · Spanish Worship</span>
+        </div>
+        <div class="relative aspect-video overflow-hidden rounded-xl bg-gradient-to-br from-violet-900 via-ink-800 to-black">
+          <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 25% 25%, rgba(139,92,246,.6), transparent 45%), radial-gradient(circle at 80% 70%, rgba(37,99,235,.5), transparent 45%);"></div>
+          <div class="relative flex h-full flex-col items-center justify-center px-8 text-center">
+            <p class="text-[10px] font-bold uppercase tracking-[0.35em] text-violet-300">Juan 3:16</p>
+            <p class="mt-4 text-xl font-black leading-snug text-white md:text-3xl">
+              Porque de tal manera amó Dios al mundo,
+            </p>
+            <div class="mt-5 h-1 w-16 rounded-full bg-gradient-to-r from-violet-400 to-blue-400"></div>
+          </div>
+          <div class="absolute bottom-3 right-3 rounded-md bg-black/50 px-2 py-1 text-[10px] text-slate-300">LIVE · 1080p</div>
+        </div>
+      </div>
+
+      <div class="absolute -bottom-5 -left-4 hidden items-center gap-3 rounded-xl border border-white/10 bg-white/10 px-4 py-3 shadow-xl backdrop-blur-md sm:flex">
+        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-300">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+          </svg>
+        </span>
+        <span class="text-xs font-semibold text-white">Listo para proyectar</span>
+      </div>
+    </div>
+  </div>
+</section>

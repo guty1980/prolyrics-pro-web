@@ -1,0 +1,79 @@
+---
+const currentYear = new Date().getFullYear();
+
+const groups = [
+  {
+    title: "Explorar",
+    items: [
+      { text: "Todos los recursos", href: "/recursos" },
+      { text: "Plantillas", href: "/recursos?categoria=Plantillas" },
+      { text: "Fondos", href: "/recursos?categoria=Fondos" },
+      { text: "Canciones", href: "/recursos?categoria=Canciones" },
+    ],
+  },
+  {
+    title: "PROLYRICS PRO",
+    items: [
+      { text: "Planes y precios", href: "/planes" },
+      { text: "Sobre nosotros", href: "/nosotros" },
+      { text: "Contacto", href: "/contacto" },
+      { text: "Novedades", href: "/recursos?orden=recientes" },
+    ],
+  },
+  {
+    title: "Legal",
+    items: [
+      { text: "Privacidad", href: "/privacidad" },
+      { text: "Términos de uso", href: "/terminos" },
+      { text: "Licencias", href: "/terminos#licencias" },
+    ],
+  },
+];
+---
+
+<footer class="border-t border-white/10 bg-ink-900 pt-16 pb-8 text-slate-300">
+  <div class="container">
+    <div class="grid gap-12 md:grid-cols-2 lg:grid-cols-5">
+      <div class="lg:col-span-2">
+        <div class="flex items-center gap-3">
+          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-blue-600">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18V5l12-2v13" />
+              <circle cx="6" cy="18" r="3" />
+              <circle cx="18" cy="16" r="3" />
+            </svg>
+          </span>
+          <span class="text-lg font-extrabold text-white">PROLYRICS <span class="text-violet-400">PRO</span></span>
+        </div>
+        <p class="mt-5 max-w-sm text-sm leading-relaxed text-slate-400">
+          Recursos visuales y plantillas para que tu equipo de alabanza y proyección prepare cada servicio en minutos, no en horas.
+        </p>
+        <a href="mailto:hola@prolyricspro.com" class="mt-5 inline-block text-sm font-medium text-violet-300 hover:text-white">
+          hola@prolyricspro.com
+        </a>
+      </div>
+
+      {
+        groups.map((group) => (
+          <div>
+            <h3 class="mb-4 text-sm font-bold uppercase tracking-wider text-white">{group.title}</h3>
+            <ul class="space-y-3">
+              {group.items.map((item) => (
+                <li>
+                  <a href={item.href} class="text-sm text-slate-400 transition-colors hover:text-violet-300">
+                    {item.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 text-xs text-slate-500 sm:flex-row">
+      <p>&copy; {currentYear} PROLYRICS PRO. Todos los derechos reservados.</p>
+      <p>Hecho para iglesias modernas con ♥</p>
+    </div>
+  </div>
+</footer>

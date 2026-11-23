@@ -1,0 +1,108 @@
+---
+const navItems = [
+  { text: "Inicio", href: "/" },
+  { text: "Recursos", href: "/recursos" },
+  { text: "Planes", href: "/planes" },
+  { text: "Nosotros", href: "/nosotros" },
+  { text: "Contacto", href: "/contacto" },
+];
+
+const currentPath = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === "/" ? currentPath === "/" : currentPath.startsWith(href);
+---
+
+<nav class="hidden lg:flex items-center gap-7" aria-label="Navegación principal">
+  <ul class="flex items-center gap-7">
+    {
+      navItems.map((item) => (
+        <li>
+          <a
+            href={item.href}
+            class:list={[
+              "text-sm font-medium transition-colors hover:text-white",
+              isActive(item.href) ? "text-violet-400" : "text-slate-300",
+            ]}
+            aria-current={isActive(item.href) ? "page" : undefined}
+          >
+            {item.text}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+
+  <a
+    href="/recursos"
+    class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/40 transition-transform hover:scale-105"
+  >
+    Explorar gratis
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+    </svg>
+  </a>
+</nav>
+
+<button
+  id="mobile-menu-button"
+  class="rounded-lg p-2 text-white transition-colors hover:bg-white/10 lg:hidden"
+  aria-label="Abrir menú"
+  aria-expanded="false"
+  aria-controls="mobile-menu"
+>
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16" />
+  </svg>
+</button>
+
+<div
+  id="mobile-menu"
+  class="absolute left-0 right-0 top-full hidden border-b border-white/10 bg-ink-900 px-5 py-6 shadow-2xl lg:hidden"
+>
+  <ul class="space-y-1">
+    {
+      navItems.map((item) => (
+        <li>
+          <a
+            href={item.href}
+            class:list={[
+              "block rounded-lg px-4 py-3 text-sm font-medium",
+              isActive(item.href) ? "bg-white/10 text-violet-300" : "text-slate-200 hover:bg-white/5",
+            ]}
+          >
+            {item.text}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  <a href="/recursos" class="mt-4 block rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-3 text-center text-sm font-semibold text-white">
+    Explorar recursos
+  </a>
+</div>
+
+<script>
+  const button = document.getElementById("mobile-menu-button");
+  const menu = document.getElementById("mobile-menu");
+
+  const setMenu = (open: boolean) => {
+    menu?.classList.toggle("hidden", !open);
+    button?.setAttribute("aria-expanded", String(open));
+  };
+
+  button?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setMenu(menu?.classList.contains("hidden") ?? false);
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!menu?.classList.contains("hidden") && !menu.contains(event.target as Node) && !button?.contains(event.target as Node)) {
+      setMenu(false);
+    }
+  });
+
+  menu?.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => setMenu(false)));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setMenu(false);
+  });
+</script>

@@ -1,0 +1,62 @@
+---
+export interface Props {
+  resource: any;
+}
+
+const { resource } = Astro.props;
+const { id, data } = resource;
+---
+
+<a
+  href={`/recursos/${id}/`}
+  class="card group flex h-full flex-col border border-slate-200/80"
+  data-card
+  data-title={data.title.toLowerCase()}
+  data-category={data.category}
+  data-format={data.format.toLowerCase()}
+  data-premium={String(data.premium)}
+  data-featured={String(data.featured)}
+  data-tags={data.tags.join(" ").toLowerCase()}
+>
+  <div class="relative aspect-video overflow-hidden bg-ink-900">
+    <img
+      src={data.image}
+      alt={data.title}
+      loading="lazy"
+      class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+    />
+    <div class="absolute inset-x-0 top-0 flex items-start justify-between p-3">
+      <span class="badge bg-black/60 text-white backdrop-blur">{data.category}</span>
+      {
+        data.premium ? (
+          <span class="badge bg-gradient-to-r from-amber-400 to-orange-500 text-ink-900">PRO</span>
+        ) : (
+          <span class="badge bg-emerald-500 text-white">Gratis</span>
+        )
+      }
+    </div>
+  </div>
+
+  <div class="flex flex-1 flex-col p-5">
+    <div class="mb-2 flex items-center gap-2 text-xs font-medium text-violet-600">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
+      </svg>
+      {data.format}
+    </div>
+
+    <h3 class="text-lg font-bold leading-snug text-slate-900 transition-colors group-hover:text-violet-700">
+      {data.title}
+    </h3>
+
+    <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">
+      {data.description}
+    </p>
+
+    <span class="mt-auto pt-5 text-sm font-semibold text-violet-600">
+      Ver recurso
+      <span class="inline-block transition-transform group-hover:translate-x-1">→</span>
+    </span>
+  </div>
+</a>
