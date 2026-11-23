@@ -4,6 +4,7 @@
   const $ = (id) => document.getElementById(id);
   let selection = null;
   let resources = [];
+  let heroSlides = [];
   let products = [];
   let users = [];
   let mediaItems = [];
@@ -58,6 +59,7 @@
     $("login-view").hidden = true;
     $("dashboard").hidden = false;
     loadChanges();
+    loadHeroSlides();
     loadProducts();
     loadUsers();
     loadBranding();
@@ -73,6 +75,7 @@
       panel.classList.toggle("is-active", panel.dataset.panel === name);
     });
     if (name === "visual") loadChanges();
+    if (name === "portada") loadHeroSlides();
     if (name === "productos") loadProducts();
     if (name === "usuarios") loadUsers();
     if (name === "marca") loadBranding();
@@ -261,6 +264,163 @@
       toast("Cambio eliminado.");
       reloadFrame();
       loadChanges();
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  // --- Portada / carrusel --------------------------------------------------
+  const heroFieldMap = {
+    id: "hero-id",
+    active: "hero-active",
+    order: "hero-order",
+    eyebrow: "hero-eyebrow",
+    title: "hero-title",
+    highlight: "hero-highlight",
+    subtitle: "hero-subtitle",
+    ctaText: "hero-cta-text",
+    ctaLink: "hero-cta-link",
+    secondaryCtaText: "hero-secondary-text",
+    secondaryCtaLink: "hero-secondary-link",
+    backgroundImage: "hero-background",
+    image: "hero-image",
+    imageAlt: "hero-image-alt",
+    previewLabel: "hero-preview-label",
+    previewKicker: "hero-preview-kicker",
+    previewText: "hero-preview-text",
+    previewBadge: "hero-preview-badge",
+    stat1Value: "hero-stat1-value",
+    stat1Label: "hero-stat1-label",
+    stat2Value: "hero-stat2-value",
+    stat2Label: "hero-stat2-label",
+    stat3Value: "hero-stat3-value",
+    stat3Label: "hero-stat3-label",
+  };
+
+  function readHeroForm() {
+    const slide = {};
+    Object.entries(heroFieldMap).forEach(([key, id]) => {
+      const node = $(id);
+      if (!node) return;
+      if (key === "active") slide[key] = node.checked;
+      else if (key === "order") slide[key] = Number(node.value || 0);
+      else slide[key] = node.value.trim();
+    });
+    return slide;
+  }
+
+  function fillHeroForm(slide) {
+    Object.entries(heroFieldMap).forEach(([key, id]) => {
+      const node = $(id);
+      if (!node) return;
+      if (key === "active") node.checked = slide.active !== false;
+      else node.value = slide[key] ?? "";
+    });
+  }
+
+  function resetHeroForm() {
+    $("hero-form")?.reset();
+    if ($("hero-id")) $("hero-id").value = "";
+    if ($("hero-order")) $("hero-order").value = String(heroSlides.length + 1);
+    if ($("hero-active")) $("hero-active").checked = true;
+  }
+
+  function renderHeroList() {
+    const list = $("hero-list");
+    if (!list) return;
+    if (!heroSlides.length) {
+      list.innerHTML = '<p class="muted">No hay diapositivas. Crea una nueva o restablece la portada.</p>';
+      return;
+    }
+    list.innerHTML = heroSlides
+      .slice()
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+      .map((slide) => {
+        const image = slide.image || slide.backgroundImage || "/og-image.png";
+        return `
+          <div class="resource-row">
+            <img src="${esc(image)}" alt="" loading="lazy" />
+            <div>
+              <strong>${esc(slide.title || slide.highlight || "Diapositiva sin título")}</strong>
+              <span>${esc(slide.eyebrow || "Portada")} · Orden ${Number(slide.order || 0)} ${
+                slide.active === false ? "· Oculta" : "· Visible"
+              }</span>
+            </div>
+            <div class="resource-actions">
+              <button class="btn btn-ghost btn-small" type="button" data-edit-hero="${esc(slide.id)}">Editar</button>
+              <button class="btn btn-danger btn-small" type="button" data-delete-hero="${esc(slide.id)}">✕</button>
+            </div>
+          </div>`;
+      })
+      .join("");
+
+    list.querySelectorAll("[data-edit-hero]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const slide = heroSlides.find((item) => item.id === button.dataset.editHero);
+        if (slide) fillHeroForm(slide);
+      });
+    });
+    list.querySelectorAll("[data-delete-hero]").forEach((button) => {
+      button.addEventListener("click", () => deleteHeroSlide(button.dataset.deleteHero));
+    });
+  }
+
+  async function loadHeroSlides() {
+    try {
+      const data = await api("/api/admin/hero");
+      heroSlides = data.slides || [];
+      renderHeroList();
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  async function saveHeroSlide(event) {
+    event.preventDefault();
+    const slide = readHeroForm();
+    try {
+      const data = await api("/api/admin/hero", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(slide),
+      });
+      heroSlides = data.slides || [];
+      resetHeroForm();
+      renderHeroList();
+      reloadFrame();
+      toast("Diapositiva guardada. Recarga el sitio público para verla.");
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  async function deleteHeroSlide(id) {
+    if (!window.confirm("¿Eliminar esta diapositiva de la portada?")) return;
+    try {
+      const data = await api("/api/admin/hero", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      heroSlides = data.slides || [];
+      if ($("hero-id") && $("hero-id").value === id) resetHeroForm();
+      renderHeroList();
+      reloadFrame();
+      toast("Diapositiva eliminada.");
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  async function resetHeroSlides() {
+    if (!window.confirm("¿Restablecer las diapositivas originales de la portada?")) return;
+    try {
+      const data = await api("/api/admin/hero/reset", { method: "POST" });
+      heroSlides = data.slides || [];
+      resetHeroForm();
+      renderHeroList();
+      reloadFrame();
+      toast("Portada restablecida.");
     } catch (error) {
       toast(error.message, true);
     }
@@ -1223,6 +1383,7 @@
 
   function tabForTarget(target) {
     if (!target) return "recursos";
+    if (target.startsWith("hero-")) return "portada";
     if (target.startsWith("product-")) return "productos";
     if (target.startsWith("brand-")) return "marca";
     return "recursos";
@@ -1345,6 +1506,11 @@
     $("delete-selection").addEventListener("click", deleteSelection);
     $("save-section").addEventListener("click", saveSection);
     $("reload-frame").addEventListener("click", reloadFrame);
+
+    $("new-hero")?.addEventListener("click", resetHeroForm);
+    $("clear-hero")?.addEventListener("click", resetHeroForm);
+    $("reset-hero")?.addEventListener("click", resetHeroSlides);
+    $("hero-form")?.addEventListener("submit", saveHeroSlide);
 
     $("new-product").addEventListener("click", resetProductForm);
     $("product-form").addEventListener("submit", saveProduct);

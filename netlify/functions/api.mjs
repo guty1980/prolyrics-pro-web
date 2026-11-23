@@ -24,6 +24,7 @@ import {
   unauthorized,
 } from "./_lib/http.mjs";
 import { seedResources } from "./_lib/seed-resources.mjs";
+import { seedHeroSlides, normalizeHeroSlide } from "./_lib/seed-hero.mjs";
 import { defaultBranding, seedProducts } from "./_lib/seed-products.mjs";
 import {
   clearUserSessionCookie,
@@ -100,6 +101,23 @@ async function getProducts() {
 async function getBranding() {
   const stored = await readJSON(contentStore(), "branding", null);
   return { ...defaultBranding, ...(stored && typeof stored === "object" ? stored : {}) };
+}
+
+async function getHeroSlides() {
+  const stored = await readJSON(contentStore(), "hero-slides", null);
+  if (Array.isArray(stored)) return stored.map(normalizeHeroSlide);
+  await writeJSON(contentStore(), "hero-slides", seedHeroSlides);
+  return seedHeroSlides;
+}
+
+async function saveHeroSlides(slides) {
+  await writeJSON(contentStore(), "hero-slides", slides);
+}
+
+function publicHeroSlides(slides) {
+  return slides
+    .filter((slide) => slide.active)
+    .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
 }
 
 async function getMediaFolderMap() {
@@ -381,6 +399,46 @@ export default async function handler(request) {
     };
     await writeJSON(contentStore(), "branding", branding);
     return json({ ok: true, branding });
+  }
+
+  // --- Portada / carrusel principal ----------------------------------------
+  if (route === "hero" && method === "GET") {
+    return json({ ok: true, slides: publicHeroSlides(await getHeroSlides()) });
+  }
+
+  if (route === "admin/hero" && method === "GET") {
+    if (!requireAdmin(request)) return unauthorized();
+    return json({ ok: true, slides: await getHeroSlides() });
+  }
+
+  if (route === "admin/hero" && method === "POST") {
+    if (!requireAdmin(request)) return unauthorized();
+    const body = await readJson(request);
+    const slide = normalizeHeroSlide(body);
+    if (!slide.title && !slide.highlight) return error("La diapositiva necesita un título.", 400);
+    const slides = await getHeroSlides();
+    if (!slide.id) slide.id = slugify(slide.title, "diapositiva");
+    const existing = slides.findIndex((item) => item.id === slide.id);
+    if (existing >= 0) slides[existing] = slide;
+    else slides.push(slide);
+    await saveHeroSlides(slides);
+    return json({ ok: true, slide, slides });
+  }
+
+  if (route === "admin/hero" && method === "DELETE") {
+    if (!requireAdmin(request)) return unauthorized();
+    const body = await readJson(request);
+    const id = String(body.id || "");
+    if (!id) return error("Falta el ID de la diapositiva.", 400);
+    const slides = (await getHeroSlides()).filter((item) => item.id !== id);
+    await saveHeroSlides(slides);
+    return json({ ok: true, slides });
+  }
+
+  if (route === "admin/hero/reset" && method === "POST") {
+    if (!requireAdmin(request)) return unauthorized();
+    await saveHeroSlides(seedHeroSlides);
+    return json({ ok: true, slides: seedHeroSlides });
   }
 
   // --- Productos digitales -------------------------------------------------

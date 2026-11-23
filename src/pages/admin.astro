@@ -53,6 +53,7 @@ import "../assets/styles/global.css";
       <div class="dashboard-body">
         <nav class="tabs" role="tablist" aria-label="Secciones del panel">
           <button class="tab is-active" data-tab="visual" type="button" role="tab">Editor visual</button>
+          <button class="tab" data-tab="portada" type="button" role="tab">Portada</button>
           <button class="tab" data-tab="productos" type="button" role="tab">Productos</button>
           <button class="tab" data-tab="usuarios" type="button" role="tab">Usuarios</button>
           <button class="tab" data-tab="marca" type="button" role="tab">Marca</button>
@@ -154,6 +155,87 @@ import "../assets/styles/global.css";
                 <div id="changes-list" class="changes-list"><p class="muted">Cargando…</p></div>
               </div>
             </aside>
+          </div>
+        </section>
+
+        <!-- PORTADA / CARRUSEL -->
+        <section class="tab-panel" data-panel="portada">
+          <div class="panel-heading">
+            <div>
+              <h2>Portada y carrusel principal</h2>
+              <p>Edita cada diapositiva del bloque superior del sitio. Podés usar imágenes grandes de fondo, una imagen de producto y todos los textos. El carrusel se mueve solo, con flechas, puntos y deslizamiento.</p>
+            </div>
+            <div class="inline-actions">
+              <button id="new-hero" class="btn btn-ghost" type="button">+ Nueva diapositiva</button>
+              <button id="reset-hero" class="btn btn-danger btn-small" type="button">Restablecer portada</button>
+            </div>
+          </div>
+
+          <div class="split-layout">
+            <form id="hero-form" class="form-card hero-form">
+              <h3>Diapositiva</h3>
+              <input id="hero-id" type="hidden" />
+              <div class="form-row">
+                <label class="field"><span>Orden</span><input id="hero-order" type="number" value="0" /></label>
+                <label class="check"><input id="hero-active" type="checkbox" checked /> Visible en la web</label>
+              </div>
+
+              <label class="field"><span>Etiqueta superior</span><input id="hero-eyebrow" placeholder="Recursos para tu iglesia" /></label>
+              <label class="field"><span>Título (primera línea)</span><input id="hero-title" placeholder="Tu próximo servicio," /></label>
+              <label class="field"><span>Título destacado (segunda línea)</span><input id="hero-highlight" placeholder="listo en minutos." /></label>
+              <label class="field"><span>Texto descriptivo</span><textarea id="hero-subtitle" rows="3"></textarea></label>
+
+              <div class="form-row">
+                <label class="field"><span>Texto del botón principal</span><input id="hero-cta-text" placeholder="Explorar recursos" /></label>
+                <label class="field"><span>Enlace del botón principal</span><input id="hero-cta-link" placeholder="/recursos" /></label>
+                <label class="field"><span>Texto del botón secundario</span><input id="hero-secondary-text" placeholder="Ver planes" /></label>
+                <label class="field"><span>Enlace del botón secundario</span><input id="hero-secondary-link" placeholder="/planes" /></label>
+              </div>
+
+              <label class="field">
+                <span>Imagen de fondo grande</span>
+                <div class="inline-actions">
+                  <input id="hero-background" placeholder="/api/media?key=..." />
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="hero-background">Elegir de galería</button>
+                </div>
+              </label>
+              <label class="field">
+                <span>Imagen principal de la diapositiva</span>
+                <div class="inline-actions">
+                  <input id="hero-image" placeholder="/api/media?key=..." />
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="hero-image">Elegir de galería</button>
+                </div>
+              </label>
+              <label class="field"><span>Texto alternativo de la imagen</span><input id="hero-image-alt" placeholder="Nombre de la aplicación" /></label>
+
+              <hr />
+              <h3>Vista previa dentro de la portada</h3>
+              <label class="field"><span>Etiqueta de la ventana</span><input id="hero-preview-label" placeholder="Presentación · Spanish Worship" /></label>
+              <label class="field"><span>Título pequeño</span><input id="hero-preview-kicker" placeholder="Juan 3:16" /></label>
+              <label class="field"><span>Texto destacado</span><input id="hero-preview-text" placeholder="Porque de tal manera amó Dios al mundo," /></label>
+              <label class="field"><span>Insignia inferior</span><input id="hero-preview-badge" placeholder="LIVE · 1080p" /></label>
+
+              <hr />
+              <h3>Cifras</h3>
+              <div class="form-row">
+                <label class="field"><span>Cifra 1</span><input id="hero-stat1-value" placeholder="120+" /></label>
+                <label class="field"><span>Etiqueta 1</span><input id="hero-stat1-label" placeholder="Recursos listos" /></label>
+                <label class="field"><span>Cifra 2</span><input id="hero-stat2-value" placeholder="5" /></label>
+                <label class="field"><span>Etiqueta 2</span><input id="hero-stat2-label" placeholder="Categorías" /></label>
+                <label class="field"><span>Cifra 3</span><input id="hero-stat3-value" placeholder="16:9" /></label>
+                <label class="field"><span>Etiqueta 3</span><input id="hero-stat3-label" placeholder="Formato proyección" /></label>
+              </div>
+
+              <div class="inline-actions">
+                <button class="btn btn-primary" type="submit">Guardar diapositiva</button>
+                <button id="clear-hero" class="btn btn-ghost" type="button">Limpiar formulario</button>
+              </div>
+            </form>
+
+            <div class="list-card">
+              <h3>Diapositivas guardadas</h3>
+              <div id="hero-list" class="resources-list"><p class="muted">Cargando…</p></div>
+            </div>
           </div>
         </section>
 
