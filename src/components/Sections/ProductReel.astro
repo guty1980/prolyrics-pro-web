@@ -146,26 +146,44 @@ const initialProducts = seedProducts
     });
   }
 
-  function scrollToIndex(index: number) {
-    if (!track) return;
+  function leftForIndex(index: number): number {
+    if (!track) return 0;
     const cards = track.querySelectorAll<HTMLElement>(".reel-card");
-    if (!cards.length) return;
-    const target = cards[index % cards.length];
-    track.scrollTo({ left: target.offsetLeft - track.offsetLeft, behavior: "smooth" });
+    if (!cards.length) return 0;
+    const safeIndex = ((index % cards.length) + cards.length) % cards.length;
+    const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+    return Math.min(Math.max(0, cards[safeIndex].offsetLeft - track.offsetLeft), maxScroll);
+  }
+
+  function scrollToIndex(index: number, behavior: ScrollBehavior = "smooth") {
+    if (!track) return;
+    track.scrollTo({ left: leftForIndex(index), behavior });
   }
 
   function next() {
     if (!track) return;
     const cards = track.querySelectorAll(".reel-card");
     if (!cards.length) return;
-    scrollToIndex((currentIndex() + 1) % cards.length);
+    const following = currentIndex() + 1;
+    // Al llegar al final el último índice apunta al mismo scroll máximo:
+    // detectarlo y volver al inicio evita que el reel se quede trabado.
+    if (following >= cards.length || Math.abs(leftForIndex(following) - track.scrollLeft) < 3) {
+      scrollToIndex(0, "auto");
+      return;
+    }
+    scrollToIndex(following);
   }
 
   function prev() {
     if (!track) return;
     const cards = track.querySelectorAll(".reel-card");
     if (!cards.length) return;
-    scrollToIndex((currentIndex() - 1 + cards.length) % cards.length);
+    const previous = currentIndex() - 1;
+    if (previous < 0) {
+      scrollToIndex(cards.length - 1, "auto");
+      return;
+    }
+    scrollToIndex(previous);
   }
 
   function startAuto() {
@@ -180,8 +198,6 @@ const initialProducts = seedProducts
   document.getElementById("reel-next")?.addEventListener("click", () => { next(); startAuto(); });
   document.getElementById("reel-prev")?.addEventListener("click", () => { prev(); startAuto(); });
   track?.addEventListener("scroll", updateDots, { passive: true });
-  track?.addEventListener("mouseenter", stopAuto);
-  track?.addEventListener("mouseleave", startAuto);
 
   buildDots(track?.querySelectorAll(".reel-card").length || 0);
   startAuto();

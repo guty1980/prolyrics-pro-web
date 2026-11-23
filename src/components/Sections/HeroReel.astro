@@ -191,6 +191,50 @@ const initialSlides = seedHeroSlides
     z-index: 2;
   }
 
+  /* Movimiento de “reel”: cada portada entra con profundidad y un barrido de luz. */
+  .hero-slide.is-active .hero-copy,
+  .hero-slide.is-active .hero-visual {
+    animation: hero-reel-enter 0.95s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .hero-slide.is-active .hero-visual {
+    animation-delay: 0.12s;
+  }
+
+  @keyframes hero-reel-enter {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 28px, 0) scale(0.985);
+      filter: blur(7px);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+      filter: blur(0);
+    }
+  }
+
+  .hero-slide.is-active .hero-veil::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      100deg,
+      transparent 32%,
+      rgba(196, 181, 253, 0.18) 50%,
+      transparent 68%
+    );
+    transform: translateX(-100%);
+    animation: hero-reel-sweep 1.4s ease-out both;
+  }
+
+  @keyframes hero-reel-sweep {
+    to {
+      transform: translateX(100%);
+    }
+  }
+
   .hero-bg {
     position: absolute;
     inset: -4%;
@@ -203,6 +247,11 @@ const initialSlides = seedHeroSlides
 
   .hero-slide.is-active .hero-bg {
     transform: scale(1.1);
+  }
+
+  .hero-slide:not(.is-active) .hero-bg {
+    transition: none;
+    transform: scale(1.02);
   }
 
   .hero-veil {
@@ -826,7 +875,7 @@ const initialSlides = seedHeroSlides
   let slides = [];
   let index = 0;
   let timer;
-  let paused = false;
+  let paused = document.hidden;
 
   const esc = (value) =>
     String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -960,10 +1009,7 @@ const initialSlides = seedHeroSlides
       .map((_, dotIndex) => `<button class="hero-dot-button" type="button" data-hero-dot="${dotIndex}" aria-label="Ir a la diapositiva ${dotIndex + 1}"></button>`)
       .join("");
     dots.querySelectorAll("[data-hero-dot]").forEach((button) => {
-      button.addEventListener("click", () => {
-        show(Number(button.dataset.heroDot));
-        start();
-      });
+      button.addEventListener("click", () => show(Number(button.dataset.heroDot)));
     });
   }
 
@@ -987,6 +1033,8 @@ const initialSlides = seedHeroSlides
     });
     if (counter) counter.textContent = `${String(index + 1).padStart(2, "0")} / ${String(slides.length).padStart(2, "0")}`;
     restartProgress();
+    // Cada cambio rearma el reel, incluso con flechas, puntos o swipe.
+    start();
   }
 
   function start() {
@@ -1025,24 +1073,15 @@ const initialSlides = seedHeroSlides
     }
   }
 
-  document.getElementById("hero-prev")?.addEventListener("click", () => {
-    show(index - 1);
-    start();
-  });
+  document.getElementById("hero-prev")?.addEventListener("click", () => show(index - 1));
+  document.getElementById("hero-next")?.addEventListener("click", () => show(index + 1));
 
-  document.getElementById("hero-next")?.addEventListener("click", () => {
-    show(index + 1);
-    start();
-  });
-
-  root?.addEventListener("mouseenter", () => {
-    paused = true;
-    stop();
-  });
-
-  root?.addEventListener("mouseleave", () => {
-    paused = false;
-    start();
+  // El reel sigue avanzando aunque el cursor quede sobre la portada (por ejemplo
+  // dentro del iframe del admin). Solo se detiene si la pestaña está oculta.
+  document.addEventListener("visibilitychange", () => {
+    paused = document.hidden;
+    if (paused) stop();
+    else start();
   });
 
   document.addEventListener("keydown", (event) => {
@@ -1062,7 +1101,6 @@ const initialSlides = seedHeroSlides
     const delta = (event.changedTouches[0]?.clientX || 0) - touchStartX;
     if (Math.abs(delta) < 45) return;
     show(delta > 0 ? index - 1 : index + 1);
-    start();
   }, { passive: true });
 
   render(readSeed());
