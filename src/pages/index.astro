@@ -1,17 +1,9 @@
 ---
-import { getCollection } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import HeroReel from "../components/Sections/HeroReel.astro";
 import ProductReel from "../components/Sections/ProductReel.astro";
 import Button from "../components/UI/Button.astro";
-import ResourceCard from "../components/Cards/ResourceCard.astro";
 import HomeTabs from "../components/Sections/HomeTabs.astro";
-
-const allResources = await getCollection("resources", ({ data }) => !data.draft);
-const featured = allResources
-  .filter((entry) => entry.data.featured)
-  .sort((a, b) => a.data.order - b.data.order)
-  .slice(0, 6);
 
 const categories = [
   {
@@ -140,23 +132,6 @@ const plans = [
     </div>
   </section>
 
-  <!-- Recursos destacados -->
-  <section class="py-20">
-    <div class="container">
-      <div class="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
-        <div class="max-w-2xl">
-          <span class="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">Destacados</span>
-          <h2 class="mt-3">Los favoritos de esta semana</h2>
-          <p class="mt-4 text-lg text-slate-500">Diseños listos para usar, creados por y para iglesias.</p>
-        </div>
-        <Button href="/recursos" variant="outline">Ver todos los recursos →</Button>
-      </div>
-
-      <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {featured.map((resource) => <ResourceCard resource={resource} />)}
-      </div>
-    </div>
-  </section>
 
   <!-- Cómo funciona -->
   <section class="border-y border-slate-200 bg-slate-50 py-20">

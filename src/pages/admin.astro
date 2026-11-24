@@ -55,6 +55,7 @@ import "../assets/styles/global.css";
           <button class="tab is-active" data-tab="visual" type="button" role="tab">Editor visual</button>
           <button class="tab" data-tab="portada" type="button" role="tab">Portada</button>
           <button class="tab" data-tab="productos" type="button" role="tab">Productos</button>
+          <button class="tab" data-tab="paquetes" type="button" role="tab">Paquetes</button>
           <button class="tab" data-tab="usuarios" type="button" role="tab">Usuarios</button>
           <button class="tab" data-tab="marca" type="button" role="tab">Marca</button>
           <button class="tab" data-tab="recursos" type="button" role="tab">Recursos</button>
@@ -334,6 +335,93 @@ import "../assets/styles/global.css";
             <div class="list-card scroll-box">
               <h3>Productos publicados</h3>
               <div id="products-list" class="resources-list"><p class="muted">Cargando…</p></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PAQUETES -->
+        <section class="tab-panel panel-scroll-layout" data-panel="paquetes">
+          <div class="panel-heading">
+            <div>
+              <h2>Paquetes</h2>
+              <p>Crea paquetes con imágenes, videos, JSON o cualquier archivo. Estos paquetes se muestran en la página de Productos.</p>
+            </div>
+            <button id="new-package" class="btn btn-ghost" type="button">+ Nuevo paquete</button>
+          </div>
+
+          <div class="split-layout">
+            <form id="package-form" class="form-card scroll-box">
+              <h3>Datos del paquete</h3>
+              <input id="package-original-slug" type="hidden" />
+              <label class="field"><span>Título</span><input id="package-title" required /></label>
+              <label class="field"><span>Slug (URL)</span><input id="package-slug" placeholder="mi-paquete" /></label>
+              <label class="field"><span>Frase corta / tagline</span><input id="package-tagline" /></label>
+              <label class="field">
+                <span>Categoría</span>
+                <select id="package-category">
+                  <option>Paquete</option><option>Fondos</option><option>Videos</option><option>Plantillas</option><option>Imágenes</option><option>Audio</option><option>Archivos</option><option>Otro</option>
+                </select>
+              </label>
+              <div class="form-row">
+                <label class="field"><span>Precio (número)</span><input id="package-price" type="number" step="0.01" value="0" /></label>
+                <label class="field"><span>Etiqueta de precio</span><input id="package-price-label" placeholder="Gratis" /></label>
+              </div>
+              <label class="field"><span>Descripción</span><textarea id="package-description" rows="3"></textarea></label>
+              <label class="field">
+                <span>Portada / imagen principal (URL)</span>
+                <div class="inline-actions">
+                  <input id="package-image" placeholder="/api/media?key=..." />
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="package-image">Elegir de galería</button>
+                </div>
+              </label>
+              <label class="field">
+                <span>Miniatura / logo del paquete (URL)</span>
+                <div class="inline-actions">
+                  <input id="package-logo" placeholder="/api/media?key=..." />
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="package-logo">Elegir de galería</button>
+                </div>
+              </label>
+              <label class="field">
+                <span>Video / tráiler (URL)</span>
+                <div class="field-row">
+                  <input id="package-trailer" placeholder="/api/media?key=..." />
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="package-trailer">Elegir de galería</button>
+                </div>
+              </label>
+              <div class="field">
+                <span>Galería del paquete (imágenes o videos)</span>
+                <div id="package-gallery-list" class="product-gallery-editor"></div>
+                <div class="field-row" style="margin-top:8px;">
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="package-gallery">+ Agregar desde Medios</button>
+                </div>
+                <textarea id="package-gallery" rows="3" placeholder="https://.../imagen.jpg&#10;https://.../video.mp4" style="margin-top:8px;"></textarea>
+                <p class="muted" style="margin-top:6px;font-size:12px;">Podés pegar URLs una por línea o usar el botón para traer archivos desde Medios.</p>
+              </div>
+              <div class="field">
+                <span>Archivos del paquete (cualquier archivo: imagen, video, JSON, ZIP, etc.)</span>
+                <div id="package-files-list" class="product-gallery-editor"></div>
+                <div class="field-row" style="margin-top:8px;">
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="package-files">+ Agregar archivo desde Medios</button>
+                </div>
+                <textarea id="package-files" rows="3" placeholder="https://.../archivo.json&#10;https://.../pack.zip" style="margin-top:8px;"></textarea>
+                <p class="muted" style="margin-top:6px;font-size:12px;">Una URL por línea. También podés agregar desde Medios; se aceptan JSON y cualquier tipo de archivo.</p>
+              </div>
+              <label class="field"><span>Detalles de venta (uno por línea)</span><textarea id="package-sale-details" rows="4"></textarea></label>
+              <label class="field"><span>Funcionalidades (una por línea)</span><textarea id="package-functionalities" rows="4"></textarea></label>
+              <label class="field"><span>Etiquetas (separadas por coma)</span><input id="package-tags" /></label>
+              <label class="field"><span>Archivo descargable principal (clave de medios)</span><input id="package-file-key" placeholder="Copia la clave desde Medios" /></label>
+              <label class="field"><span>O URL de archivo externo</span><input id="package-file-url" /></label>
+              <label class="field"><span>Orden</span><input id="package-order" type="number" value="0" /></label>
+              <label class="check"><input id="package-featured" type="checkbox" /> Destacado</label>
+              <label class="check"><input id="package-draft" type="checkbox" /> Borrador (oculto)</label>
+              <label class="check"><input id="package-requires" type="checkbox" /> Requiere cuenta con acceso</label>
+              <label class="check"><input id="package-public" type="checkbox" checked /> Descarga pública (sin cuenta)</label>
+              <button class="btn btn-primary btn-block" type="submit">Guardar paquete</button>
+            </form>
+
+            <div class="list-card scroll-box">
+              <h3>Paquetes publicados</h3>
+              <div id="packages-list" class="resources-list"><p class="muted">Cargando…</p></div>
             </div>
           </div>
         </section>

@@ -2,9 +2,14 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PageHeader from "../../components/Sections/PageHeader.astro";
 import { seedProducts } from "../../../netlify/functions/_lib/seed-products.mjs";
+import { seedPackages } from "../../../netlify/functions/_lib/seed-packages.mjs";
 
 const initialProducts = seedProducts
   .filter((product) => !product.draft)
+  .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+
+const initialPackages = seedPackages
+  .filter((pkg) => !pkg.draft)
   .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
 ---
 
@@ -17,6 +22,55 @@ const initialProducts = seedProducts
     title="Productos digitales CREATIVOX"
     subtitle="Herramientas listas para usar. Cada producto con sus detalles de venta y funcionalidades."
   />
+
+  <section class="py-16 border-b border-slate-200" id="paquetes">
+    <div class="container">
+      <div class="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
+        <div class="max-w-2xl">
+          <span class="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">Paquetes</span>
+          <h2 class="mt-3 text-3xl font-extrabold text-slate-900">Paquetes listos para usar</h2>
+          <p class="mt-4 text-lg text-slate-500">Paquetes de videos, imágenes, archivos JSON y más, creados para que los descargues y uses al instante.</p>
+        </div>
+      </div>
+
+      <div id="packages-grid" class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {
+          initialPackages.map((pkg) => (
+            <article class="card group flex h-full flex-col border border-slate-200/80">
+              <div class="relative aspect-video overflow-hidden bg-ink-900">
+                <img
+                  src={pkg.image || "/og-image.png"}
+                  alt={pkg.title}
+                  loading="lazy"
+                  class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div class="absolute inset-x-0 top-0 flex items-start justify-between p-3">
+                  <span class="badge bg-black/60 text-white backdrop-blur">{pkg.category || "Paquete"}</span>
+                  <span class="badge bg-violet-600 text-white">{pkg.priceLabel || "Gratis"}</span>
+                </div>
+              </div>
+              <div class="flex flex-1 flex-col p-5">
+                <h3 class="text-lg font-bold leading-snug text-slate-900">{pkg.title}</h3>
+                <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">{pkg.description || pkg.tagline}</p>
+                {pkg.files?.length ? (
+                  <p class="mt-3 text-xs font-medium text-violet-600">{pkg.files.length} archivo(s) incluido(s)</p>
+                ) : null}
+                <div class="mt-auto flex flex-wrap gap-2 pt-5">
+                  {(pkg.files || []).slice(0, 2).map((file) => (
+                    <a href={file.url || (file.key ? `/api/media?key=${encodeURIComponent(file.key)}&download=1` : "#")} class="inline-flex items-center rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-violet-50 hover:text-violet-700" download>
+                      {file.name || "Archivo"}
+                    </a>
+                  ))}
+                  {(pkg.files || []).length > 2 && <span class="inline-flex items-center px-1 text-xs text-slate-400">+{pkg.files.length - 2} más</span>}
+                </div>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+      <p id="packages-empty" class="mt-10 hidden text-center text-slate-500">No hay paquetes publicados todavía.</p>
+    </div>
+  </section>
 
   <section class="py-16">
     <div class="container">
@@ -71,6 +125,39 @@ const initialProducts = seedProducts
         ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]),
       );
 
+    function fileHref(file) {
+      if (!file) return "#";
+      if (file.url) return String(file.url);
+      if (file.key) return `/api/media?key=${encodeURIComponent(file.key)}&download=1`;
+      return "#";
+    }
+
+    function packageCardMarkup(pkg) {
+      const image = pkg.image || "/og-image.png";
+      const files = Array.isArray(pkg.files) ? pkg.files : [];
+      const fileButtons = files.slice(0, 2).map((file) =>
+        `<a href="${esc(fileHref(file))}" class="inline-flex items-center rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-violet-50 hover:text-violet-700" download>${esc(file.name || "Archivo")}</a>`
+      ).join("");
+      const more = files.length > 2 ? `<span class="inline-flex items-center px-1 text-xs text-slate-400">+${files.length - 2} más</span>` : "";
+      const filesLine = files.length ? `<p class="mt-3 text-xs font-medium text-violet-600">${files.length} archivo(s) incluido(s)</p>` : "";
+      return `
+        <article class="card group flex h-full flex-col border border-slate-200/80">
+          <div class="relative aspect-video overflow-hidden bg-ink-900">
+            <img src="${esc(image)}" alt="${esc(pkg.title)}" loading="lazy" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            <div class="absolute inset-x-0 top-0 flex items-start justify-between p-3">
+              <span class="badge bg-black/60 text-white backdrop-blur">${esc(pkg.category || "Paquete")}</span>
+              <span class="badge bg-violet-600 text-white">${esc(pkg.priceLabel || "Gratis")}</span>
+            </div>
+          </div>
+          <div class="flex flex-1 flex-col p-5">
+            <h3 class="text-lg font-bold leading-snug text-slate-900">${esc(pkg.title)}</h3>
+            <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">${esc(pkg.description || pkg.tagline || "")}</p>
+            ${filesLine}
+            <div class="mt-auto flex flex-wrap gap-2 pt-5">${fileButtons}${more}</div>
+          </div>
+        </article>`;
+    }
+
     function cardMarkup(product) {
       const image = product.image || "/og-image.png";
       return `
@@ -91,6 +178,23 @@ const initialProducts = seedProducts
           </div>
         </a>`;
     }
+
+    fetch("/api/packages")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!data || !Array.isArray(data.packages)) return;
+        const grid = document.getElementById("packages-grid");
+        const empty = document.getElementById("packages-empty");
+        if (!grid || !empty) return;
+        if (data.packages.length === 0) {
+          grid.innerHTML = "";
+          empty.classList.remove("hidden");
+        } else {
+          empty.classList.add("hidden");
+          grid.innerHTML = data.packages.map(packageCardMarkup).join("");
+        }
+      })
+      .catch(() => {});
 
     fetch("/api/products")
       .then((response) => (response.ok ? response.json() : null))

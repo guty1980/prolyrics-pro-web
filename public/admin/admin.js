@@ -6,6 +6,7 @@
   let resources = [];
   let heroSlides = [];
   let products = [];
+  let packages = [];
   let users = [];
   let mediaItems = [];
   let mediaFolders = [];
@@ -67,6 +68,7 @@
     loadChanges();
     loadHeroSlides();
     loadProducts();
+    loadPackages();
     loadUsers();
     loadBranding();
     loadResources();
@@ -83,6 +85,7 @@
     if (name === "visual") loadChanges();
     if (name === "portada") loadHeroSlides();
     if (name === "productos") loadProducts();
+    if (name === "paquetes") loadPackages();
     if (name === "usuarios") loadUsers();
     if (name === "marca") loadBranding();
     if (name === "recursos") loadResources();
@@ -648,6 +651,311 @@
       $("product-slug").value = result.product.slug;
       toast("Producto guardado.");
       loadProducts();
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  // --- Paquetes ------------------------------------------------------------
+  let packageFilesData = [];
+
+  function resetPackageForm() {
+    $("package-form").reset();
+    $("package-original-slug").value = "";
+    $("package-price").value = "0";
+    $("package-order").value = "0";
+    $("package-public").checked = true;
+    $("package-requires").checked = false;
+    packageFilesData = [];
+    renderPackageGalleryEditor();
+    renderPackageFilesEditor();
+  }
+
+  function packageGalleryItems() {
+    return String($("package-gallery")?.value || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+
+  function renderPackageGalleryEditor() {
+    const root = $("package-gallery-list");
+    const textarea = $("package-gallery");
+    if (!root || !textarea) return;
+    const items = packageGalleryItems();
+    if (!items.length) {
+      root.innerHTML = '<p class="muted" style="font-size:12px;padding:10px 0;">No hay imágenes ni videos en la galería. Agregá desde Medios o pegá URLs abajo.</p>';
+      return;
+    }
+    root.innerHTML = items
+      .map((url, index) => {
+        const video = isVideoUrl(url);
+        const preview = video
+          ? `<video src="${esc(url)}" muted preload="metadata"></video>`
+          : `<img src="${esc(url)}" alt="" loading="lazy" />`;
+        return `
+          <div class="product-gallery-item">
+            <div class="product-gallery-preview">${preview}</div>
+            <div class="product-gallery-item-actions">
+              <span class="product-gallery-kind">${video ? "Video" : "Imagen"}</span>
+              <button class="btn btn-danger btn-small" type="button" data-remove-package-gallery="${index}">Quitar</button>
+            </div>
+          </div>`;
+      })
+      .join("");
+    root.querySelectorAll("[data-remove-package-gallery]").forEach((button) => {
+      button.addEventListener("click", () => removePackageGalleryUrl(Number(button.dataset.removePackageGallery)));
+    });
+  }
+
+  function syncPackageGallery(items) {
+    if ($("package-gallery")) $("package-gallery").value = items.join("\n");
+    renderPackageGalleryEditor();
+  }
+
+  function addPackageGalleryUrl(url) {
+    const clean = String(url || "").trim();
+    if (!clean) return;
+    const items = packageGalleryItems();
+    if (items.includes(clean)) return toast("Ese archivo ya está en la galería.");
+    items.push(clean);
+    syncPackageGallery(items);
+  }
+
+  function removePackageGalleryUrl(index) {
+    const items = packageGalleryItems();
+    if (index < 0 || index >= items.length) return;
+    items.splice(index, 1);
+    syncPackageGallery(items);
+  }
+
+  function packageFileUrl(file) {
+    if (!file) return "";
+    if (file.url) return String(file.url);
+    if (file.key) return `/api/media?key=${encodeURIComponent(file.key)}`;
+    return "";
+  }
+
+  function normalizePackageFileEntry(entry) {
+    if (!entry) return null;
+    if (typeof entry === "string") {
+      const url = entry.trim();
+      if (!url) return null;
+      const name = decodeURIComponent(url.split("/").pop()?.split("?")[0] || "archivo");
+      return { name, url, key: "", type: "", size: 0 };
+    }
+    const url = String(entry.url || "").trim();
+    const key = String(entry.key || "").trim();
+    if (!url && !key) return null;
+    const name = String(entry.name || url.split("/").pop()?.split("?")[0] || key.split("/").pop() || "archivo").trim();
+    return {
+      name,
+      url: url || (key ? `/api/media?key=${encodeURIComponent(key)}` : ""),
+      key,
+      type: String(entry.type || ""),
+      size: Number(entry.size || 0),
+    };
+  }
+
+  function renderPackageFilesEditor() {
+    const root = $("package-files-list");
+    const textarea = $("package-files");
+    if (!root || !textarea) return;
+    const items = packageFilesData.map(normalizePackageFileEntry).filter(Boolean);
+    packageFilesData = items;
+    textarea.value = items.map((f) => packageFileUrl(f)).filter(Boolean).join("\n");
+    if (!items.length) {
+      root.innerHTML = '<p class="muted" style="font-size:12px;padding:10px 0;">No hay archivos en el paquete. Agregá desde Medios o pegá URLs abajo.</p>';
+      return;
+    }
+    root.innerHTML = items
+      .map((file, index) => {
+        const url = packageFileUrl(file);
+        const name = esc(file.name || "archivo");
+        const ext = esc((file.name || url).split(".").pop()?.toUpperCase() || "FILE");
+        return `
+          <div class="product-gallery-item">
+            <div class="product-gallery-preview"><div class="file-icon">${ext}</div></div>
+            <div class="media-name" title="${name}" style="padding:8px 8px 0;font-size:12px;">${name}</div>
+            <div class="product-gallery-item-actions">
+              <span class="product-gallery-kind">${esc(file.type || "archivo")}</span>
+              <button class="btn btn-danger btn-small" type="button" data-remove-package-file="${index}">Quitar</button>
+            </div>
+          </div>`;
+      })
+      .join("");
+    root.querySelectorAll("[data-remove-package-file]").forEach((button) => {
+      button.addEventListener("click", () => removePackageFile(Number(button.dataset.removePackageFile)));
+    });
+  }
+
+  function addPackageFileUrl(url, mediaItem) {
+    const clean = String(url || "").trim();
+    if (!clean) return;
+    if (packageFilesData.some((f) => packageFileUrl(f) === clean)) return toast("Ese archivo ya está en el paquete.");
+    const entry = mediaItem
+      ? {
+          name: mediaItem.name || clean.split("/").pop() || "archivo",
+          url: clean,
+          key: mediaItem.key || "",
+          type: mediaItem.type || "",
+          size: Number(mediaItem.size || 0),
+        }
+      : normalizePackageFileEntry(clean);
+    if (!entry) return;
+    packageFilesData.push(entry);
+    renderPackageFilesEditor();
+  }
+
+  function removePackageFile(index) {
+    if (index < 0 || index >= packageFilesData.length) return;
+    packageFilesData.splice(index, 1);
+    renderPackageFilesEditor();
+  }
+
+  function syncPackageFilesFromTextarea() {
+    const urls = String($("package-files")?.value || "")
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    // Preserve known metadata where URL matches, otherwise create basic entries
+    packageFilesData = urls.map((url) => {
+      const existing = packageFilesData.find((f) => packageFileUrl(f) === url);
+      return existing || normalizePackageFileEntry(url);
+    }).filter(Boolean);
+    renderPackageFilesEditor();
+  }
+
+  async function loadPackages() {
+    try {
+      const data = await api("/api/packages?all=1");
+      packages = (data.packages || []).map((p) => ({ ...p, files: Array.isArray(p.files) ? p.files : [] }));
+      if (!$("packages-list")) return;
+      if (!packages.length) {
+        $("packages-list").innerHTML = '<p class="muted">No hay paquetes todavía.</p>';
+        return;
+      }
+      $("packages-list").innerHTML = packages
+        .map(
+          (item) => `
+            <div class="resource-row">
+              <img src="${esc(item.image || item.logo || "/og-image.png")}" alt="" loading="lazy" />
+              <div>
+                <strong>${esc(item.title)}</strong>
+                <span>${esc(item.category || "Paquete")} · ${esc(item.priceLabel || "Gratis")}${item.draft ? " · Borrador" : ""}${item.files?.length ? ` · ${item.files.length} archivo(s)` : ""}</span>
+              </div>
+              <div class="resource-actions">
+                <button class="btn btn-ghost btn-small" data-edit-package="${esc(item.slug)}" type="button">Editar</button>
+                <button class="btn btn-danger btn-small" data-delete-package="${esc(item.slug)}" type="button">✕</button>
+              </div>
+            </div>`,
+        )
+        .join("");
+
+      $("packages-list").querySelectorAll("[data-edit-package]").forEach((button) => {
+        button.addEventListener("click", () => editPackage(button.dataset.editPackage));
+      });
+      $("packages-list").querySelectorAll("[data-delete-package]").forEach((button) => {
+        button.addEventListener("click", () => deletePackage(button.dataset.deletePackage));
+      });
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  function editPackage(slug) {
+    const item = packages.find((pkg) => pkg.slug === slug);
+    if (!item) return;
+    $("package-original-slug").value = item.slug;
+    $("package-title").value = item.title || "";
+    $("package-slug").value = item.slug || "";
+    $("package-tagline").value = item.tagline || "";
+    $("package-category").value = item.category || "Paquete";
+    $("package-price").value = item.price || 0;
+    $("package-price-label").value = item.priceLabel || "";
+    $("package-description").value = item.description || "";
+    $("package-image").value = item.image || "";
+    $("package-logo").value = item.logo || "";
+    $("package-trailer").value = item.trailer || "";
+    $("package-gallery").value = linesToTextarea(item.gallery);
+    renderPackageGalleryEditor();
+    packageFilesData = (Array.isArray(item.files) ? item.files : []).map(normalizePackageFileEntry).filter(Boolean);
+    renderPackageFilesEditor();
+    $("package-sale-details").value = linesToTextarea(item.saleDetails);
+    $("package-functionalities").value = linesToTextarea(item.functionalities);
+    $("package-tags").value = (item.tags || []).join(", ");
+    $("package-file-key").value = item.fileKey || "";
+    $("package-file-url").value = item.fileUrl || "";
+    $("package-order").value = item.order || 0;
+    $("package-featured").checked = Boolean(item.featured);
+    $("package-draft").checked = Boolean(item.draft);
+    $("package-requires").checked = item.requiresAccount === true;
+    $("package-public").checked = item.publicDownload !== false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function deletePackage(slug) {
+    if (!window.confirm("¿Eliminar este paquete?")) return;
+    try {
+      await api("/api/packages", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slug }),
+      });
+      toast("Paquete eliminado.");
+      if ($("package-original-slug").value === slug) resetPackageForm();
+      loadPackages();
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  async function savePackage(event) {
+    event.preventDefault();
+    syncPackageFilesFromTextarea();
+    const payload = {
+      title: $("package-title").value.trim(),
+      slug: $("package-slug").value.trim(),
+      tagline: $("package-tagline").value.trim(),
+      category: $("package-category").value,
+      price: Number($("package-price").value || 0),
+      priceLabel: $("package-price-label").value.trim(),
+      description: $("package-description").value.trim(),
+      image: $("package-image").value.trim(),
+      logo: $("package-logo").value.trim(),
+      trailer: $("package-trailer").value.trim(),
+      gallery: $("package-gallery").value,
+      files: packageFilesData,
+      saleDetails: $("package-sale-details").value,
+      functionalities: $("package-functionalities").value,
+      tags: $("package-tags").value,
+      fileKey: $("package-file-key").value.trim(),
+      fileUrl: $("package-file-url").value.trim(),
+      order: Number($("package-order").value || 0),
+      featured: $("package-featured").checked,
+      draft: $("package-draft").checked,
+      requiresAccount: $("package-requires").checked,
+      publicDownload: $("package-public").checked,
+    };
+
+    try {
+      const original = $("package-original-slug").value.trim();
+      if (original && original !== payload.slug) {
+        await api("/api/packages", {
+          method: "DELETE",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ slug: original }),
+        });
+      }
+      const result = await api("/api/packages", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      $("package-original-slug").value = result.package.slug;
+      $("package-slug").value = result.package.slug;
+      toast("Paquete guardado.");
+      loadPackages();
     } catch (error) {
       toast(error.message, true);
     }
@@ -1739,6 +2047,7 @@
     if (!target) return "recursos";
     if (target.startsWith("hero-")) return "portada";
     if (target.startsWith("product-")) return "productos";
+    if (target.startsWith("package-")) return "paquetes";
     if (target.startsWith("brand-")) return "marca";
     return "recursos";
   }
@@ -1755,6 +2064,20 @@
         mediaPickTarget = null;
         activateTab(tabForTarget(target));
         toast("Archivo agregado a la galería del producto.");
+        return;
+      }
+      if (target === "package-gallery") {
+        addPackageGalleryUrl(url);
+        mediaPickTarget = null;
+        activateTab(tabForTarget(target));
+        toast("Archivo agregado a la galería del paquete.");
+        return;
+      }
+      if (target === "package-files") {
+        addPackageFileUrl(url, item);
+        mediaPickTarget = null;
+        activateTab(tabForTarget(target));
+        toast("Archivo agregado al paquete.");
         return;
       }
       $(target).value = url;
@@ -1876,6 +2199,10 @@
     $("new-product").addEventListener("click", resetProductForm);
     $("product-form").addEventListener("submit", saveProduct);
     $("product-gallery")?.addEventListener("input", renderProductGalleryEditor);
+    $("new-package")?.addEventListener("click", resetPackageForm);
+    $("package-form")?.addEventListener("submit", savePackage);
+    $("package-gallery")?.addEventListener("input", renderPackageGalleryEditor);
+    $("package-files")?.addEventListener("input", syncPackageFilesFromTextarea);
     $("new-user").addEventListener("click", resetUserForm);
     $("user-form").addEventListener("submit", saveUser);
     $("brand-form").addEventListener("submit", saveBranding);

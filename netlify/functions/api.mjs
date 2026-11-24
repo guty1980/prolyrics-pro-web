@@ -26,6 +26,7 @@ import {
 import { seedResources } from "./_lib/seed-resources.mjs";
 import { seedHeroSlides, normalizeHeroSlide } from "./_lib/seed-hero.mjs";
 import { defaultBranding, seedProducts } from "./_lib/seed-products.mjs";
+import { seedPackages } from "./_lib/seed-packages.mjs";
 import {
   clearUserSessionCookie,
   findUserByEmail,
@@ -96,6 +97,65 @@ async function getProducts() {
   if (Array.isArray(stored)) return stored;
   await writeJSON(contentStore(), "products", seedProducts);
   return seedProducts;
+}
+
+function normalizePackageFiles(value) {
+  const list = Array.isArray(value) ? value : [];
+  return list
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const url = String(item.url || "").trim();
+      const key = String(item.key || "").trim();
+      const name = String(item.name || url.split("/").pop() || key.split("/").pop() || "archivo").trim();
+      if (!url && !key) return null;
+      return {
+        name,
+        url,
+        key,
+        type: String(item.type || "application/octet-stream"),
+        size: Number(item.size || 0),
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizePackage(raw = {}) {
+  const body = raw && typeof raw === "object" ? raw : {};
+  const price = Number(body.price || 0) || 0;
+  return {
+    slug: slugify(body.slug || body.title, "paquete"),
+    title: String(body.title || ""),
+    tagline: String(body.tagline || ""),
+    description: String(body.description || ""),
+    category: String(body.category || "Paquete"),
+    price,
+    priceLabel: String(body.priceLabel || (price > 0 ? `$${price}` : "Gratis")),
+    image: String(body.image || ""),
+    logo: String(body.logo || ""),
+    trailer: String(body.trailer || ""),
+    gallery: Array.isArray(body.gallery) ? body.gallery.map(String).filter(Boolean) : textList(body.gallery),
+    files: normalizePackageFiles(body.files),
+    saleDetails: textList(body.saleDetails),
+    functionalities: textList(body.functionalities),
+    tags: Array.isArray(body.tags) ? body.tags.map(String).filter(Boolean) : textList(body.tags),
+    featured: Boolean(body.featured),
+    draft: Boolean(body.draft),
+    requiresAccount: body.requiresAccount === true,
+    publicDownload: body.publicDownload !== false,
+    fileKey: String(body.fileKey || ""),
+    fileUrl: String(body.fileUrl || ""),
+    order: Number(body.order || 0),
+    updatedAt: String(body.updatedAt || ""),
+    createdAt: String(body.createdAt || ""),
+  };
+}
+
+async function getPackages() {
+  const stored = await readJSON(contentStore(), "packages", null);
+  if (Array.isArray(stored)) return stored.map(normalizePackage);
+  const seeded = seedPackages.map(normalizePackage);
+  await writeJSON(contentStore(), "packages", seeded);
+  return seeded;
 }
 
 async function getBranding() {
@@ -552,6 +612,53 @@ export default async function handler(request) {
       contentStore(),
       "products",
       products.filter((item) => item.slug !== slug),
+    );
+    return json({ ok: true });
+  }
+
+  // --- Paquetes ------------------------------------------------------------
+  if (route === "packages" && method === "GET") {
+    const packages = await getPackages();
+    const includeAll = url.searchParams.get("all") === "1" && requireAdmin(request);
+    const list = includeAll ? packages : packages.filter((item) => !item.draft);
+    return json({
+      ok: true,
+      packages: [...list].sort((a, b) => Number(a.order || 0) - Number(b.order || 0)),
+    });
+  }
+
+  if (route === "packages" && method === "POST") {
+    if (!requireAdmin(request)) return unauthorized();
+    const body = await readJson(request);
+    const packages = await getPackages();
+    const slug = slugify(body.slug || body.title, "paquete");
+    if (!body.title) return error("El paquete necesita un título.", 400);
+
+    const existing = packages.find((item) => item.slug === slug);
+    const pkg = normalizePackage({
+      ...body,
+      slug,
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    const index = packages.findIndex((item) => item.slug === slug);
+    if (index >= 0) packages[index] = { ...packages[index], ...pkg };
+    else packages.push(pkg);
+
+    await writeJSON(contentStore(), "packages", packages);
+    return json({ ok: true, package: pkg });
+  }
+
+  if (route === "packages" && method === "DELETE") {
+    if (!requireAdmin(request)) return unauthorized();
+    const body = await readJson(request);
+    const slug = String(body.slug || "");
+    if (!slug) return error("Falta el slug.", 400);
+    const packages = await getPackages();
+    await writeJSON(
+      contentStore(),
+      "packages",
+      packages.filter((item) => item.slug !== slug),
     );
     return json({ ok: true });
   }
