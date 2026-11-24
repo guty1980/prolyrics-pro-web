@@ -302,8 +302,22 @@ import "../assets/styles/global.css";
                   <button class="btn btn-ghost btn-small" type="button" data-pick-target="product-logo">Elegir de galería</button>
                 </div>
               </label>
-              <label class="field"><span>Video / tráiler (URL)</span><input id="product-trailer" placeholder="/api/media?key=..." /></label>
-              <label class="field"><span>Galería (imágenes o videos, una URL por línea)</span><textarea id="product-gallery" rows="3" placeholder="https://.../imagen.jpg&#10;https://.../video.mp4"></textarea></label>
+              <label class="field">
+                <span>Video / tráiler (URL)</span>
+                <div class="field-row">
+                  <input id="product-trailer" placeholder="/api/media?key=..." />
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="product-trailer">Elegir de galería</button>
+                </div>
+              </label>
+              <div class="field">
+                <span>Galería del producto (imágenes o videos)</span>
+                <div id="product-gallery-list" class="product-gallery-editor"></div>
+                <div class="field-row" style="margin-top:8px;">
+                  <button class="btn btn-ghost btn-small" type="button" data-pick-target="product-gallery">+ Agregar desde Medios</button>
+                </div>
+                <textarea id="product-gallery" rows="3" placeholder="https://.../imagen.jpg&#10;https://.../video.mp4" style="margin-top:8px;"></textarea>
+                <p class="muted" style="margin-top:6px;font-size:12px;">Podés pegar URLs una por línea o usar el botón para traer archivos desde Medios.</p>
+              </div>
               <label class="field"><span>Detalles de venta (uno por línea)</span><textarea id="product-sale-details" rows="4"></textarea></label>
               <label class="field"><span>Funcionalidades (una por línea)</span><textarea id="product-functionalities" rows="4"></textarea></label>
               <label class="field"><span>Etiquetas (separadas por coma)</span><input id="product-tags" /></label>

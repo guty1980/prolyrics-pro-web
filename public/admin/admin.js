@@ -453,10 +453,73 @@
     $("product-price").value = "0";
     $("product-order").value = "0";
     $("product-requires").checked = true;
+    renderProductGalleryEditor();
   }
 
   function linesToTextarea(value) {
     return Array.isArray(value) ? value.join("\n") : String(value || "");
+  }
+
+  function productGalleryItems() {
+    return String($("product-gallery")?.value || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+
+  function isVideoUrl(url) {
+    return /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(url) || /[?&]key=[^&]*\.(mp4|webm|ogg|mov|m4v)/i.test(url);
+  }
+
+  function renderProductGalleryEditor() {
+    const root = $("product-gallery-list");
+    const textarea = $("product-gallery");
+    if (!root || !textarea) return;
+    const items = productGalleryItems();
+    if (!items.length) {
+      root.innerHTML = '<p class="muted" style="font-size:12px;padding:10px 0;">No hay imágenes ni videos en la galería. Agregá desde Medios o pegá URLs abajo.</p>';
+      return;
+    }
+    root.innerHTML = items
+      .map((url, index) => {
+        const video = isVideoUrl(url);
+        const preview = video
+          ? `<video src="${esc(url)}" muted preload="metadata"></video>`
+          : `<img src="${esc(url)}" alt="" loading="lazy" />`;
+        return `
+          <div class="product-gallery-item">
+            <div class="product-gallery-preview">${preview}</div>
+            <div class="product-gallery-item-actions">
+              <span class="product-gallery-kind">${video ? "Video" : "Imagen"}</span>
+              <button class="btn btn-danger btn-small" type="button" data-remove-product-gallery="${index}">Quitar</button>
+            </div>
+          </div>`;
+      })
+      .join("");
+    root.querySelectorAll("[data-remove-product-gallery]").forEach((button) => {
+      button.addEventListener("click", () => removeProductGalleryUrl(Number(button.dataset.removeProductGallery)));
+    });
+  }
+
+  function syncProductGallery(items) {
+    if ($("product-gallery")) $("product-gallery").value = items.join("\n");
+    renderProductGalleryEditor();
+  }
+
+  function addProductGalleryUrl(url) {
+    const clean = String(url || "").trim();
+    if (!clean) return;
+    const items = productGalleryItems();
+    if (items.includes(clean)) return toast("Ese archivo ya está en la galería.");
+    items.push(clean);
+    syncProductGallery(items);
+  }
+
+  function removeProductGalleryUrl(index) {
+    const items = productGalleryItems();
+    if (index < 0 || index >= items.length) return;
+    items.splice(index, 1);
+    syncProductGallery(items);
   }
 
   async function loadProducts() {
@@ -511,6 +574,7 @@
     $("product-logo").value = item.logo || "";
     $("product-trailer").value = item.trailer || "";
     $("product-gallery").value = linesToTextarea(item.gallery);
+    renderProductGalleryEditor();
     $("product-sale-details").value = linesToTextarea(item.saleDetails);
     $("product-functionalities").value = linesToTextarea(item.functionalities);
     $("product-tags").value = (item.tags || []).join(", ");
@@ -1676,8 +1740,15 @@
     const url = new URL(item.url, window.location.origin).href;
 
     if (mediaPickTarget && $(mediaPickTarget)) {
-      $(mediaPickTarget).value = url;
       const target = mediaPickTarget;
+      if (target === "product-gallery") {
+        addProductGalleryUrl(url);
+        mediaPickTarget = null;
+        activateTab(tabForTarget(target));
+        toast("Archivo agregado a la galería del producto.");
+        return;
+      }
+      $(target).value = url;
       mediaPickTarget = null;
       activateTab(tabForTarget(target));
       toast("URL aplicada al formulario.");
@@ -1795,6 +1866,7 @@
 
     $("new-product").addEventListener("click", resetProductForm);
     $("product-form").addEventListener("submit", saveProduct);
+    $("product-gallery")?.addEventListener("input", renderProductGalleryEditor);
     $("new-user").addEventListener("click", resetUserForm);
     $("user-form").addEventListener("submit", saveUser);
     $("brand-form").addEventListener("submit", saveBranding);

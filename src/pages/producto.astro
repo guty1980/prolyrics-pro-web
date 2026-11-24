@@ -87,13 +87,13 @@ import BaseLayout from "../layouts/BaseLayout.astro";
                 ? `<video src="${esc(product.trailer)}" controls preload="metadata" class="mt-5 w-full rounded-2xl bg-black"></video>`
                 : ""}
               ${product.gallery && product.gallery.length
-                ? `<div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                ? `<div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     ${product.gallery
                       .map((src) => {
                         const isVideo = /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(src) || /[?&]key=[^&]*\.(mp4|webm|ogg|mov|m4v)/i.test(src);
                         return isVideo
-                          ? `<video src="${esc(src)}" controls preload="metadata" playsinline class="aspect-video w-full rounded-xl bg-black object-cover"></video>`
-                          : `<img src="${esc(src)}" alt="" class="aspect-video w-full rounded-xl object-cover" loading="lazy" />`;
+                          ? `<video src="${esc(src)}" controls preload="metadata" playsinline class="aspect-video w-full rounded-xl bg-black object-cover shadow-md"></video>`
+                          : `<button type="button" class="group block overflow-hidden rounded-xl shadow-md" data-lightbox-src="${esc(src)}"><img src="${esc(src)}" alt="${esc(product.title)}" class="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" loading="lazy" /></button>`;
                       })
                       .join("")}
                   </div>`
@@ -137,7 +137,28 @@ import BaseLayout from "../layouts/BaseLayout.astro";
                 : ""}
             </div>
           </div>
+        </div>
+        <div id="product-lightbox" class="fixed inset-0 z-[200] hidden items-center justify-center bg-black/90 p-4">
+          <button type="button" id="product-lightbox-close" class="absolute right-4 top-4 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20">Cerrar</button>
+          <img id="product-lightbox-img" src="" alt="" class="max-h-[90vh] max-w-[95vw] rounded-xl object-contain shadow-2xl" />
         </div>`;
+
+      const lightbox = document.getElementById("product-lightbox");
+      const lightboxImg = document.getElementById("product-lightbox-img") as HTMLImageElement | null;
+      const closeLightbox = () => { lightbox?.classList.add("hidden"); lightbox?.classList.remove("flex"); if (lightboxImg) lightboxImg.src = ""; };
+      root.querySelectorAll("[data-lightbox-src]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const src = btn.getAttribute("data-lightbox-src") || "";
+          if (!src || !lightbox || !lightboxImg) return;
+          lightboxImg.src = src;
+          lightboxImg.alt = product.title;
+          lightbox.classList.remove("hidden");
+          lightbox.classList.add("flex");
+        });
+      });
+      document.getElementById("product-lightbox-close")?.addEventListener("click", closeLightbox);
+      lightbox?.addEventListener("click", (e) => { if (e.target === lightbox) closeLightbox(); });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeLightbox(); }, { once: false });
     }
 
     async function load() {
