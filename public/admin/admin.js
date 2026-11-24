@@ -1203,10 +1203,12 @@
   function renderMediaFolderSelect(keepValue) {
     const select = $("media-folder-select");
     if (!select) return;
+    const downloadFolders = new Set(DOWNLOAD_SECTIONS.map((s) => s.folder));
     const current = keepValue || select.value || "";
     select.innerHTML =
       '<option value="">Sin sección</option>' +
       mediaFolders
+        .filter((folder) => !downloadFolders.has(String(folder)))
         .map((folder) => `<option value="${esc(folder)}">${esc(folder)}</option>`)
         .join("");
     select.value = current;
@@ -1226,10 +1228,11 @@
 
   function mediaCardMarkup(item) {
     const folder = String(item.folder || "");
+    const downloadFolders = new Set(DOWNLOAD_SECTIONS.map((s) => s.folder));
     const folderOptions = ['<option value="">Sin sección</option>']
       .concat(
         mediaFolders
-          .filter((name) => name !== folder)
+          .filter((name) => name !== folder && !downloadFolders.has(String(name)))
           .map((name) => `<option value="${esc(name)}">${esc(name)}</option>`),
       )
       .join("");
@@ -1293,9 +1296,15 @@
     const root = $("media-sections");
     if (!filters || !root) return;
 
+    // Descargas tiene su propia pestaña; en Medios no se mezclan esas carpetas.
+    const downloadFolders = new Set(DOWNLOAD_SECTIONS.map((s) => s.folder));
+    const libraryItems = mediaItems.filter((item) => !downloadFolders.has(String(item.folder || "")));
+
     const groups = new Map();
-    const folderNames = new Set(mediaFolders.filter(Boolean).map(String));
-    mediaItems.forEach((item) => {
+    const folderNames = new Set(
+      mediaFolders.filter((name) => name && !downloadFolders.has(String(name))).map(String),
+    );
+    libraryItems.forEach((item) => {
       const folder = String(item.folder || "");
       if (folder) folderNames.add(folder);
       else folderNames.add("");
@@ -1316,7 +1325,7 @@
     }
 
     const countFor = (folder) => (groups.get(folder) || []).length;
-    const chips = [{ key: "__all__", label: "Todos", count: mediaItems.length }];
+    const chips = [{ key: "__all__", label: "Todos", count: libraryItems.length }];
     visibleFolders.forEach((folder) => {
       chips.push({
         key: folder || "__none__",
