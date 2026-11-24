@@ -1181,6 +1181,7 @@
             <button class="btn btn-ghost btn-small" data-use-media="${esc(item.key)}" data-use-kind="${(item.type || "").startsWith("image/") ? "image" : "file"}" type="button">Usar en formulario</button>
             <button class="btn btn-ghost btn-small" data-use-cover="${esc(item.key)}" type="button">Portada</button>
             <button class="btn btn-ghost btn-small" data-use-thumb="${esc(item.key)}" type="button">Miniatura</button>
+            <button class="btn btn-ghost btn-small" data-add-gallery="${esc(item.key)}" type="button">Galería</button>
             <a class="btn btn-ghost btn-small" href="${esc(item.url)}" target="_blank" rel="noopener">Descargar</a>
             <select class="media-move" data-move-media="${esc(item.key)}" title="Mover a otra sección">${folderOptions}</select>
             <button class="btn btn-danger btn-small" data-delete-media="${esc(item.key)}" type="button">✕</button>
@@ -1205,6 +1206,9 @@
     });
     root.querySelectorAll("[data-use-thumb]").forEach((button) => {
       button.addEventListener("click", () => setMediaRole(button.dataset.useThumb, "logo"));
+    });
+    root.querySelectorAll("[data-add-gallery]").forEach((button) => {
+      button.addEventListener("click", () => addMediaToProductGallery(button.dataset.addGallery));
     });
     root.querySelectorAll("[data-move-media]").forEach((select) => {
       select.addEventListener("change", () => moveMedia(select.dataset.moveMedia, select.value));
@@ -1560,6 +1564,34 @@
           ? `Portada de ${product.title} actualizada.`
           : `Miniatura de ${product.title} actualizada.`,
       );
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  async function addMediaToProductGallery(key) {
+    const slug = $("media-product-select") ? $("media-product-select").value : "";
+    const product = products.find((item) => item.slug === slug);
+    const item = mediaByKey(key);
+    if (!product || !item) {
+      toast("Elegí un producto y un archivo.", true);
+      return;
+    }
+    const url = new URL(item.url, window.location.origin).href;
+    const gallery = Array.isArray(product.gallery) ? [...product.gallery] : [];
+    if (gallery.includes(url)) return toast("Este archivo ya está en la galería del producto.");
+    gallery.push(url);
+    try {
+      await api("/api/products", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...product, gallery }),
+      });
+      product.gallery = gallery;
+      if ($("product-original-slug")?.value === product.slug) {
+        $("product-gallery").value = linesToTextarea(gallery);
+      }
+      toast(`Agregado a la galería de ${product.title}.`);
     } catch (error) {
       toast(error.message, true);
     }

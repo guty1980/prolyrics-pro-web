@@ -87,9 +87,16 @@ import BaseLayout from "../layouts/BaseLayout.astro";
                 ? `<video src="${esc(product.trailer)}" controls preload="metadata" class="mt-5 w-full rounded-2xl bg-black"></video>`
                 : ""}
               ${product.gallery && product.gallery.length
-                ? `<div class="mt-5 grid grid-cols-3 gap-3">${product.gallery
-                    .map((src) => `<img src="${esc(src)}" alt="" class="aspect-video w-full rounded-xl object-cover" loading="lazy" />`)
-                    .join("")}</div>`
+                ? `<div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    ${product.gallery
+                      .map((src) => {
+                        const isVideo = /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(src) || /[?&]key=[^&]*\.(mp4|webm|ogg|mov|m4v)/i.test(src);
+                        return isVideo
+                          ? `<video src="${esc(src)}" controls preload="metadata" playsinline class="aspect-video w-full rounded-xl bg-black object-cover"></video>`
+                          : `<img src="${esc(src)}" alt="" class="aspect-video w-full rounded-xl object-cover" loading="lazy" />`;
+                      })
+                      .join("")}
+                  </div>`
                 : ""}
             </div>
 
